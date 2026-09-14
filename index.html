@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>ATC Radar Simulator - Layout Test</title>
+    <style>
+        /* Basisinstellingen om de layout strak en gecentreerd te houden */
+        body {
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+			overflow: hidden;     /* Blokkeert definitief elke ongewenste scrollbar */
+        }
+
+        /* Hoofdcontainer die exact de afmetingen van jouw schema volgt (1240 x 550) */
+        #atc-game-container {
+            position: relative;
+            width: 1240px;
+            height: 550px;
+            /* Eventueel een rand om de totale speelruimte te markeren */
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* 1. Linker kolom: 180 bij 550 */
+        #container-left {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 180px;
+            height: 550px;
+            background-color: #556b2f; /* Olijfgroen uit je schema */
+            border: 1px solid #333;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* 2. Bovenste balk: 840 bij 120 (start naast de linker kolom op X: 180) */
+        #container-top {
+            position: absolute;
+            left: 180px;
+            top: 0;
+            width: 840px;
+            height: 120px;
+            background-color: #228b22; /* Groen uit je schema */
+            border: 1px solid #333;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* 3. Radarscherm / Midden: 840 bij 420 (start onder de topbalk op X: 180, Y: 120) */
+        #container-radar {
+            position: absolute;
+            left: 180px;
+            top: 120px;
+            width: 840px;
+            height: 430px;
+            background-color: #d39e66; /* Oranje/zandkleur uit je schema */
+            border: 1px solid #333;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* 4. Rechter kolom: 220 bij 550 (start helemaal rechts op X: 1020) */
+        #container-right {
+            position: absolute;
+            left: 1020px;
+            top: 0;
+            width: 220px;
+            height: 550px;
+            background-color: #7b68ee; /* Paars/blauw uit je schema */
+            border: 1px solid #333;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        /* Simpele labels om de containers te herkennen */
+        .label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="atc-game-container">
+        <!-- Linker besturingspaneel -->
+        <div id="container-left">
+            <div class="label">180 x 550</div>
+        </div>
+
+        <!-- Bovenste status- en invoerbalk -->
+        <div id="container-top">
+            <div class="label">840 x 120</div>
+        </div>
+
+        <!-- Radarscherm / Midden -->
+        <div id="container-radar">
+            <div class="label">840 x 420</div>
+        </div>
+
+        <!-- Rechter vluchtstrips / info -->
+        <div id="container-right">
+            <div class="label">220 x 550</div>
+        </div>
+    </div>
+
+</body>
+</html>
