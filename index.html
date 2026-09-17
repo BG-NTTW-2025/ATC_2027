@@ -751,12 +751,25 @@
 
                 p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
             }
-            else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+                        else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                 let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
+                
                 if (Math.abs(diff) > 1) {
                     let turnRate = 45 * deltaTime; 
-                    if (diff > 0) p.heading += turnRate;
-                    else p.heading -= turnRate;
+                    
+                    // Hier controleren we nu of er specifiek voor Links (L) of Rechts (R) is gekozen:
+                    if (p.turnDirection === 'L') {
+                        p.heading -= turnRate; // Dwingt linksom te draaien
+                    } else if (p.turnDirection === 'R') {
+                        p.heading += turnRate; // Dwingt rechtsom te draaien
+                    } else {
+                        // Automatische kortste bocht als er geen L/R is meegegeven
+                        if (diff > 0) p.heading += turnRate;
+                        else p.heading -= turnRate;
+                    }
+                    
+                    // Normaliseer de koers altijd tussen 0 en 360 graden
+                    p.heading = (p.heading + 360) % 360;
                 } else {
                     p.heading = p.targetHeading;
                     p.state = "FLYING_HEADING";
@@ -767,6 +780,7 @@
                 p.x += Math.cos(rad) * moveFactor * deltaTime;
                 p.y += Math.sin(rad) * moveFactor * deltaTime;
             }
+
 
             p.element.style.left = p.x + 'px';
             p.element.style.top = p.y + 'px';
