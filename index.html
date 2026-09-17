@@ -2,21 +2,37 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>ATC Radar Simulator - Corrected Comms & Validation</title>
+    <title>ATC Radar Simulator - Scaled Container</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
-            background-color: #1a1a1a;
-            overflow: auto;
+            background-color: #000000;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Dit is de virtuele schaalbare container van 1440x900 */
+        #game-container {
+            position: relative;
+            width: 1440px;
+            height: 900px;
+            background-color: #1a1a1a;
+            transform-origin: center center;
+            flex-shrink: 0;
+            overflow: hidden;
         }
 
         #radar-screen {
-            position: relative;
-            width: 1280px;  
-            height: 560px;  
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1440px;  
+            height: 900px;  
             background-color: #f0f0f0; 
         }
 
@@ -172,47 +188,70 @@
 </head>
 <body>
 
-    <div id="radar-screen">
-        <img src="graphics/ATC_Dashboard_alt.png" alt="Dashboard" id="dashboard-bg">
+    <div id="game-container">
+        <div id="radar-screen">
+            <img src="graphics/ATC_Dashboard_alt.png" alt="Dashboard" id="dashboard-bg">
 
-        <div id="comm-atc-plane"></div>
-        <div id="comm-plane-atc"></div>
-        <div id="comm-alerts">Systeem gestart. Gereed voor vluchtbegeleiding.</div>
+            <div id="comm-atc-plane"></div>
+            <div id="comm-plane-atc"></div>
+            <div id="comm-alerts">Systeem gestart. Gereed voor vluchtbegeleiding.</div>
 
-        <div id="heading-control-group">
-            <img src="graphics/But_Heading_Up.png" alt="Heading Knop" id="btn-heading">
-            <img src="graphics/But_L_Up.png" alt="Left Knop" id="btn-left">
-			<img src="graphics/But_Est_Up.png" alt="Est Knop" id="btn-est">
-			<img src="graphics/But_R_Up.png" alt="Right Knop" id="btn-right">
-			<img src="graphics/But_0_Up.png" alt="Null Knop" id="btn-null">
-			<img src="graphics/But_1_Up.png" alt="One Knop" id="btn-one">
-			<img src="graphics/But_2_Up.png" alt="Two Knop" id="btn-two">
-			<img src="graphics/But_3_Up.png" alt="Three Knop" id="btn-three">
-			<img src="graphics/But_4_Up.png" alt="Four Knop" id="btn-four">
-			<img src="graphics/But_5_Up.png" alt="Five Knop" id="btn-five">
-			<img src="graphics/But_6_Up.png" alt="Six Knop" id="btn-six">
-			<img src="graphics/But_7_Up.png" alt="Seven Knop" id="btn-seven">
-			<img src="graphics/But_8_Up.png" alt="Eight Knop" id="btn-eight">
-			<img src="graphics/But_9_Up.png" alt="Nine Knop" id="btn-nine">
-			<img src="graphics/But_Altitude_Up.png" alt="Altitude Knop" id="btn-altitude">
-			<img src="graphics/But_down_Up.png" alt="Altitude Down Knop" id="btn-altitude_down">
-			<img src="graphics/But_up_Up.png" alt="Altitude Up Knop" id="btn-altitude_up">
-			<img src="graphics/But_Speed_Up.png" alt="Speed Knop" id="btn-speed">
-			<img src="graphics/But_down_Up.png" alt="Speed Down Knop" id="btn-speed_down">
-			<img src="graphics/But_up_Up.png" alt="Speed Up Knop" id="btn-speed_up">
-		</div>
-			
-		<div id="comm-control-group">
-            <img src="graphics/But_Clear_Up.png" alt="Clear Knop" id="btn-clear">
-            <img src="graphics/But_Send_Up.png" alt="Send Knop" id="btn-send">
+            <div id="heading-control-group">
+                <img src="graphics/But_Heading_Up.png" alt="Heading Knop" id="btn-heading">
+                <img src="graphics/But_L_Up.png" alt="Left Knop" id="btn-left">
+                <img src="graphics/But_Est_Up.png" alt="Est Knop" id="btn-est">
+                <img src="graphics/But_R_Up.png" alt="Right Knop" id="btn-right">
+                <img src="graphics/But_0_Up.png" alt="Null Knop" id="btn-null">
+                <img src="graphics/But_1_Up.png" alt="One Knop" id="btn-one">
+                <img src="graphics/But_2_Up.png" alt="Two Knop" id="btn-two">
+                <img src="graphics/But_3_Up.png" alt="Three Knop" id="btn-three">
+                <img src="graphics/But_4_Up.png" alt="Four Knop" id="btn-four">
+                <img src="graphics/But_5_Up.png" alt="Five Knop" id="btn-five">
+                <img src="graphics/But_6_Up.png" alt="Six Knop" id="btn-six">
+                <img src="graphics/But_7_Up.png" alt="Seven Knop" id="btn-seven">
+                <img src="graphics/But_8_Up.png" alt="Eight Knop" id="btn-eight">
+                <img src="graphics/But_9_Up.png" alt="Nine Knop" id="btn-nine">
+                <img src="graphics/But_Altitude_Up.png" alt="Altitude Knop" id="btn-altitude">
+                <img src="graphics/But_down_Up.png" alt="Altitude Down Knop" id="btn-altitude_down">
+                <img src="graphics/But_up_Up.png" alt="Altitude Up Knop" id="btn-altitude_up">
+                <img src="graphics/But_Speed_Up.png" alt="Speed Knop" id="btn-speed">
+                <img src="graphics/But_down_Up.png" alt="Speed Down Knop" id="btn-speed_down">
+                <img src="graphics/But_up_Up.png" alt="Speed Up Knop" id="btn-speed_up">
+            </div>
+                
+            <div id="comm-control-group">
+                <img src="graphics/But_Clear_Up.png" alt="Clear Knop" id="btn-clear">
+                <img src="graphics/But_Send_Up.png" alt="Send Knop" id="btn-send">
+            </div>
+
+            <div id="trail-container"></div>
+            <img src="graphics/Schaalstok.png" alt="Scale Stick" id="scale-stick">
+            <div id="radar-counter"></div>
         </div>
-
-        <div id="trail-container"></div>
-        <img src="graphics/Schaalstok.png" alt="Scale Stick" id="scale-stick">
-        <div id="radar-counter"></div>
     </div>
 
 <script>
+    // Automatisch schalen van de game-container naar het venster
+    function resizeGame() {
+        const container = document.getElementById('game-container');
+        const targetWidth = 1440;
+        const targetHeight = 900;
+        
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        const scaleX = windowWidth / targetWidth;
+        const scaleY = windowHeight / targetHeight;
+        
+        // Kies de kleinste schaal zodat de game altijd volledig zichtbaar is zonder scrollbalken
+        const scale = Math.min(scaleX, scaleY);
+
+        container.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('load', resizeGame);
+
     let planes = [];
     let nextPlaneIndex = 0; 
     let selectedPlane = null;
@@ -527,7 +566,6 @@
         document.getElementById('comm-plane-atc').innerText = "";
     });
 
-    // SEND knop: Zet de herhaling en foutmeldingen EXPLICIT in de onderste balk (comm-plane-atc)
     document.getElementById('btn-send').addEventListener('click', () => {
         if (!selectedPlane) {
             document.getElementById('comm-plane-atc').innerText = "Tower, What plane are you addressing?";
@@ -538,7 +576,6 @@
         let sentText = commandDetails;
         let replyText = "";
 
-        // Check op geldige koers of opdrachten
         if (currentCommandType === 'TURN' || sentText.includes("Change Heading to:")) {
             let numMatch = sentText.match(/\d+/);
             if (!numMatch || numMatch[0].length < 3 || parseInt(numMatch[0], 10) > 360) {
