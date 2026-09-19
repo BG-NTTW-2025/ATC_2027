@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>ATC Radar Simulator - Scaled Container</title>
+    <title>ATC Radar Simulator - FPS Boards</title>
     <style>
         html, body {
             margin: 0;
@@ -16,18 +16,16 @@
             align-items: center;
         }
 
-        /* De virtuele schaalbare container van 1440x900 */
         #game-container {
             position: relative;
             width: 1440px;
             height: 900px;
-            background-color: #1a1a1a;
+            background-color: #ff9900;
             transform-origin: center center;
             flex-shrink: 0;
             overflow: hidden;
         }
 
-        /* LAAG 1: De radar / kaart (Onderop) */
         #radar-map-layer {
             position: absolute;
             left: 100px;
@@ -38,7 +36,6 @@
             pointer-events: none;
         }
 
-        /* LAAG 2: De vliegtuigen en sporen (In het midden, achter het frame) */
         #planes-layer {
             position: absolute;
             left: 0;
@@ -49,7 +46,6 @@
             pointer-events: none;
         }
 
-        /* LAAG 3: Het dashboard frame met transparant gat (Bovenop) */
         #dashboard-frame {
             position: absolute;
             left: 0;
@@ -60,7 +56,6 @@
             pointer-events: none;
         }
 
-        /* Stijlen voor dynamische elementen binnen de game */
         .dynamic-plane {
             position: absolute;
             width: 32px;
@@ -96,6 +91,64 @@
             z-index: 5;
         }
 
+        .strip-container {
+            position: absolute;
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            z-index: 15;
+        }
+
+        #strips-sea { left: 15px; top: 220px; }
+        #strips-lake { left: 1225px; top: 220px; }
+        #strips-river { left: 15px; top: 620px; }
+
+        .fps-strip {
+            position: relative;
+            width: 100%;
+            height: 30px;
+            background-color: #d0e8f2;
+            border: 1px solid #1a5276;
+            display: flex;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000000;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: margin 0.2s ease;
+            pointer-events: auto;
+        }
+
+        /* Zorg dat de inhoud binnen de strip geen muisklikken blokkeert */
+        .fps-strip * {
+            pointer-events: none;
+        }
+
+        .fps-strip.stacked {
+            margin-top: -16px; 
+        }
+
+        .fps-strip:hover {
+            z-index: 100;
+            background-color: #e8f4f8;
+        }
+
+        .strip-col-aca { width: 45px; padding-left: 4px; overflow: hidden; white-space: nowrap; }
+        .strip-col-hd  { width: 45px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .strip-col-sp  { width: 45px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .strip-col-rma { width: 30px; display: flex; justify-content: center; align-items: center; }
+
+        .rma-lamp {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #000;
+        }
+        .lamp-red { background-color: #ff0000; }
+        .lamp-green { background-color: #00cc00; }
+
         #heading-control-group {
             position: absolute;
             left: 0px;  
@@ -103,27 +156,30 @@
             z-index: 15;
         }
 
-        #btn-heading { position: absolute; left: 57px; top: 214px; cursor: pointer; }
-        #btn-left { position: absolute; left: 27px; top: 270px; cursor: pointer; }
-        #btn-est { position: absolute; left: 77px; top: 270px; cursor: pointer; }
-        #btn-right { position: absolute; left: 177px; top: 270px; cursor: pointer; }
-        #btn-null { position: absolute; left: 77px; top: 320px; cursor: pointer; }
-        #btn-one { position: absolute; left: 127px; top: 320px; cursor: pointer; }
-        #btn-two { position: absolute; left: 27px; top: 370px; cursor: pointer; }
-        #btn-three { position: absolute; left: 77px; top: 370px; cursor: pointer; }
-        #btn-four { position: absolute; left: 127px; top: 370px; cursor: pointer; }
-        #btn-five { position: absolute; left: 177px; top: 370px; cursor: pointer; }
-        #btn-six { position: absolute; left: 27px; top: 420px; cursor: pointer; }
-        #btn-seven { position: absolute; left: 77px; top: 420px; cursor: pointer; }
-        #btn-eight { position: absolute; left: 127px; top: 420px; cursor: pointer; }
-        #btn-nine { position: absolute; left: 177px; top: 420px; cursor: pointer; }
-        #btn-altitude { position: absolute; left: 19px; top: 483px; cursor: pointer; }
-        #btn-altitude_down { position: absolute; left: 19px; top: 520px; cursor: pointer; }
-        #btn-altitude_up { position: absolute; left: 73px; top: 520px; cursor: pointer; }
-        #btn-speed { position: absolute; left: 130px; top: 483px; cursor: pointer; }
-        #btn-speed_down { position: absolute; left: 130px; top: 520px; cursor: pointer; }
-        #btn-speed_up { position: absolute; left: 183px; top: 520px; cursor: pointer; }
+        #btn-heading { position: absolute; left: 1201px; top: 494px; cursor: pointer; }
+        #btn-left { position: absolute; left: 1181px; top: 550px; cursor: pointer; }
+        #btn-est { position: absolute; left: 1231px; top: 550px; cursor: pointer; }
+        #btn-right { position: absolute; left: 1331px; top: 550px; cursor: pointer; }
+        #btn-null { position: absolute; left: 1231px; top: 600px; cursor: pointer; }
+        #btn-one { position: absolute; left: 1281px; top: 600px; cursor: pointer; }
 		
+        #btn-two { position: absolute; left: 1181px; top: 650px; cursor: pointer; }
+        #btn-three { position: absolute; left: 1231px; top: 650px; cursor: pointer; }
+        #btn-four { position: absolute; left: 1281px; top: 650px; cursor: pointer; }
+        #btn-five { position: absolute; left: 1331px; top: 650px; cursor: pointer; }
+		
+        #btn-six { position: absolute; left: 1181px; top: 700px; cursor: pointer; }
+        #btn-seven { position: absolute; left: 1231px; top: 700px; cursor: pointer; }
+        #btn-eight { position: absolute; left: 1281px; top: 700px; cursor: pointer; }
+        #btn-nine { position: absolute; left: 1331px; top: 700px; cursor: pointer; }
+		
+        #btn-altitude { position: absolute; left: 1173px; top: 763px; cursor: pointer; }
+        #btn-altitude_down { position: absolute; left: 1174px; top: 800px; cursor: pointer; }
+        #btn-altitude_up { position: absolute; left: 1227px; top: 800px; cursor: pointer; }
+        #btn-speed { position: absolute; left: 1284px; top: 763px; cursor: pointer; }
+        #btn-speed_down { position: absolute; left: 1284px; top: 800px; cursor: pointer; }
+        #btn-speed_up { position: absolute; left: 1337px; top: 800px; cursor: pointer; }
+				
         #comm-control-group {
             position: absolute;
             left: 200px;   
@@ -133,6 +189,31 @@
 
         #btn-send { position: absolute; left: 10px; top: 79px; cursor: pointer; }
         #btn-clear { position: absolute; left: 10px; top: 25px; cursor: pointer; }
+
+        #speed-control-ui {
+            position: absolute;
+            left: 830px;
+            top: 830px;
+            z-index: 25;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            background: #d0e8f2;
+            padding: 4px 8px;
+            border: 1px solid #1a5276;
+            border-radius: 4px;
+        }
+        .speed-btn {
+            cursor: pointer;
+            padding: 2px 5px;
+            margin: 0 1px;
+            background: #fff;
+            border: 1px solid #333;
+        }
+        .speed-btn.active {
+            background: #00cc00;
+            color: #fff;
+        }
 
         #comm-atc-plane {
             position: absolute;
@@ -185,18 +266,30 @@
             z-index: 20;
         }
 
+        #plane-coords-display {
+            position: absolute;
+            left: 1100px;
+            top: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+            z-index: 20;
+            pointer-events: none;
+        }
+
         #scale-stick {
             position: absolute;
-            left: 330px; 
-            top: 330px; 
+            left: 350px; 
+            top: 300px; 
             transform: translate(-50%, -50%);
             z-index: 2;
         }
 
         #radar-counter {
             position: absolute;
-            left: 400px; 
-            top: 300px;
+            left: 710px; 
+            top: 840px;
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 20;
@@ -206,23 +299,33 @@
 <body>
 
     <div id="game-container">
-        <!-- LAAG 1: Radar achtergrond (Inclusief verschoven/verkleinde kaart) -->
         <div id="radar-map-layer">
             <img src="graphics/Frame_NL.png" alt="Radar Kaart" style="width: 80%; height: auto; position: absolute; left: 132px; top: 226px;">
         </div>
 
-        <!-- LAAG 2: Vliegtuigen en sporen -->
         <div id="planes-layer">
             <div id="trail-container"></div>
-            <!-- Vliegtuigen komen hier dynamisch bij via Javascript -->
         </div>
 
-        <!-- LAAG 3: Het Front Frame met het transparante gat + Alle knoppen en velden -->
+        <div id="strips-sea" class="strip-container"></div>
+        <div id="strips-lake" class="strip-container"></div>
+        <div id="strips-river" class="strip-container"></div>
+
         <img src="graphics/Front_Frame_W80-H650.png" id="dashboard-frame" alt="Dashboard Frame">
 
         <div id="comm-atc-plane"></div>
         <div id="comm-plane-atc"></div>
         <div id="comm-alerts">Systeem gestart. Gereed voor vluchtbegeleiding.</div>
+        <div id="plane-coords-display">Plane ID: - x = -, y = -</div>
+
+        <div id="speed-control-ui">
+            Speed: 
+            <span class="speed-btn active" onclick="setGameSpeed(1)">1x</span>
+            <span class="speed-btn" onclick="setGameSpeed(2)">2x</span>
+            <span class="speed-btn" onclick="setGameSpeed(3)">3x</span>
+            <span class="speed-btn" onclick="setGameSpeed(4)">4x</span>
+            <span class="speed-btn" onclick="setGameSpeed(5)">5x</span>
+        </div>
 
         <div id="heading-control-group">
             <img src="graphics/But_Heading_Up.png" alt="Heading Knop" id="btn-heading">
@@ -257,18 +360,33 @@
     </div>
 
 <script>
-    // Automatisch schalen van de game-container naar het venster
+    const SIMULATION = {
+        pixelsPerKm: 4.4,
+        kmPerNM: 1.852,
+        gameSpeed: 1
+    };
+
+    function knotsToPixelsPerSecond(knots) {
+        return knots * SIMULATION.kmPerNM / 3600 * SIMULATION.pixelsPerKm;
+    }
+
+    function setGameSpeed(speed) {
+        SIMULATION.gameSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.innerText.includes(speed + 'x')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
     function resizeGame() {
         const container = document.getElementById('game-container');
         const targetWidth = 1440;
         const targetHeight = 900;
         
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-
-        const scaleX = windowWidth / targetWidth;
-        const scaleY = windowHeight / targetHeight;
-        
+        const scaleX = window.innerWidth / targetWidth;
+        const scaleY = window.innerHeight / targetHeight;
         const scale = Math.min(scaleX, scaleY);
         container.style.transform = `scale(${scale})`;
     }
@@ -295,42 +413,44 @@
     let nextSpawnInterval = getRandomSpawnInterval();
 
     function getRandomSpawnInterval() {
-        return Math.random() * 10 + 10; 
+        return Math.random() * 60 + 60; 
     }
 
     const routeTemplates = [
         {
-            startX: 225, startY: 175, heading: 78,
-            targetX: 350, targetY: 150,
-            holdingCenterX: 350, holdingCenterY: 190, holdingRadius: 40,
-            triggerType: "Y", triggerVal: 150
+            startX: 220, startY: 300, heading: 75, // Sea
+            targetX: 800, targetY: 250,
+            holdingCenterX: 415, holdingCenterY: 290, holdingRadius: 40,
+            triggerType: "Y", triggerVal: 250
         },
         {
-            startX: 1000, startY: 220, heading: 266.7,
-            targetX: 775, targetY: 220,
-            holdingCenterX: 770, holdingCenterY: 192, holdingRadius: 40,
-            triggerType: "X", triggerVal: 775
+            startX: 1140, startY: 340, heading: 263, //Lake
+            targetX: 950, targetY: 362,
+            holdingCenterX: 945, holdingCenterY: 322, holdingRadius: 40,
+            triggerType: "X", triggerVal: 949
         },
         {
-            startX: 225, startY: 512, heading: 68,
-            targetX: 350, targetY: 466,
-            holdingCenterX: 350, holdingCenterY: 504, holdingRadius: 40,
-            triggerType: "Y", triggerVal: 466
+            startX: 230, startY: 800, heading: 69, // River
+            targetX: 800, targetY: 700,
+            holdingCenterX: 403, holdingCenterY: 778, holdingRadius: 40,
+            triggerType: "Y", triggerVal: 738
         }
     ];
 
-    const planeTypes = [
-        { type: 'HEAVY', img: 'graphics/plane_1.png', speed: 20.0, maxSpeed: 250 },
-        { type: 'MIDDLE', img: 'graphics/plane_2.png', speed: 25.0, maxSpeed: 230 },
-        { type: 'LIGHT', img: 'graphics/plane_3.png', speed: 30.0, maxSpeed: 220 }
-    ];
+    const AIRCRAFT_TYPES = {
+        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, maxSpeed: 250 },
+        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, maxSpeed: 230 },
+        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, maxSpeed: 220 }
+    };
 
     function spawnNewPlane() {
         let code = getPlaneCode(nextPlaneIndex);
         nextPlaneIndex++;
 
         let t = routeTemplates[Math.floor(Math.random() * routeTemplates.length)];
-        let pType = planeTypes[Math.floor(Math.random() * planeTypes.length)];
+        let typeKeys = Object.keys(AIRCRAFT_TYPES);
+        let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+        let pTypeData = AIRCRAFT_TYPES[pTypeName];
 
         let possibleAltitudes = [7.0, 8.0, 9.0];
         let planesInThisHolding = planes.filter(p => 
@@ -344,33 +464,32 @@
         if (freeAltitudes.length > 0) {
             assignedAltitude = freeAltitudes[Math.floor(Math.random() * freeAltitudes.length)];
         } else {
-            planesInThisHolding.sort((a, b) => a.code.localeCompare(b.code));
-            assignedAltitude = planesInThisHolding[0].altitude;
+            assignedAltitude = possibleAltitudes[Math.floor(Math.random() * possibleAltitudes.length)];
         }
 
         let planeImg = document.createElement('img');
-        planeImg.src = pType.img;
+        planeImg.src = pTypeData.img;
         planeImg.className = 'dynamic-plane';
         
         let labelDiv = document.createElement('div');
         labelDiv.className = 'dynamic-label';
         labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
 
-        // Vliegtuigen en labels worden toegevoegd aan de 'planes-layer' (Laag 2)
         document.getElementById('planes-layer').appendChild(planeImg);
         document.getElementById('planes-layer').appendChild(labelDiv);
 
+        let initialKnots = pTypeData.cruiseKnots;
+
         let newPlane = {
             code: code,
-            type: pType.type,
-            maxSpeed: pType.maxSpeed,
+            type: pTypeName,
+            maxSpeed: pTypeData.maxSpeed,
             altitude: assignedAltitude,            
             targetAltitude: assignedAltitude * 1000, 
-            currentSpeed: 200,                     
-            targetSpeed: 200,                      
+            currentSpeed: initialKnots,                     
+            targetSpeed: initialKnots,                      
             x: t.startX,
             y: t.startY,
-            speed: pType.speed,
             heading: t.heading,
             targetHeading: t.heading,
             turnDirection: null,                   
@@ -398,7 +517,8 @@
         });
 
         planes.push(newPlane);
-        document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pType.type}) binnengekomen.`;
+        document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pTypeName}) binnengekomen.`;
+        updateFlightProgressStrips();
     }
 
     function selectPlane(plane) {
@@ -419,6 +539,8 @@
         });
 
         updateDisplayLines();
+        updateCoordsDisplay();
+        updateFlightProgressStrips();
     }
 
     function updateDisplayLines() {
@@ -429,72 +551,54 @@
         document.getElementById('comm-atc-plane').innerText = `Plane-${selectedPlane.code}: ${commandDetails}`;
     }
 
-    // --- COMMANDEER LOGICA & KNOPPEN ---
-    document.getElementById('btn-heading').addEventListener('click', () => {
+    function updateCoordsDisplay() {
         if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
+            document.getElementById('plane-coords-display').innerText = "Plane ID: - x = -, y = -";
             return;
         }
+        document.getElementById('plane-coords-display').innerText = `Plane ID: ${selectedPlane.code}  x = ${Math.round(selectedPlane.x)}, y = ${Math.round(selectedPlane.y)}`;
+    }
+
+    document.getElementById('btn-heading').addEventListener('click', () => {
+        if (!selectedPlane) return;
         currentCommandType = 'HEADING';
         commandDetails = "Say Heading!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-altitude').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         currentCommandType = 'ALTITUDE';
         commandDetails = "Say Altitude!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-speed').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         currentCommandType = 'SPEED';
         commandDetails = "Say Speed!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-left').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         currentCommandType = 'TURN';
         commandDetails = "Change Heading to: Left ";
         updateDisplayLines();
     });
 
     document.getElementById('btn-right').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         currentCommandType = 'TURN';
         commandDetails = "Change Heading to: Right ";
         updateDisplayLines();
     });
 
     const appendDigit = (digit) => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
-        
-        if (currentCommandType !== 'TURN') {
-            document.getElementById('comm-atc-plane').innerText = "Select Turn First";
-            return;
-        }
-
+        if (!selectedPlane || currentCommandType !== 'TURN') return;
         let parts = commandDetails.split(": ");
         if (parts.length < 2) return;
         let currentVal = parts[1];
-        
         if (currentVal.replace(/[^0-9]/g, "").length < 3) {
             commandDetails += digit;
             updateDisplayLines();
@@ -513,27 +617,17 @@
     document.getElementById('btn-nine').addEventListener('click', () => appendDigit('9'));
 
     document.getElementById('btn-est').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
-        
-        if (currentCommandType !== 'TURN' || (!commandDetails.includes("Left") && !commandDetails.includes("Right")) || commandDetails.replace(/[^0-9]/g, "").length === 0) {
-            document.getElementById('comm-atc-plane').innerText = "Select Turn and Numbers First.";
-            return;
-        }
-
-        if (!commandDetails.includes("-Establish")) {
-            commandDetails += "-Establish";
-            updateDisplayLines();
+        if (!selectedPlane) return;
+        if (currentCommandType === 'TURN' && commandDetails.replace(/[^0-9]/g, "").length > 0) {
+            if (!commandDetails.includes("-Establish")) {
+                commandDetails += "-Establish";
+                updateDisplayLines();
+            }
         }
     });
 
     document.getElementById('btn-altitude_up').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         if (currentCommandType !== 'ALT_CHANGE') {
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
@@ -544,10 +638,7 @@
     });
 
     document.getElementById('btn-altitude_down').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         if (currentCommandType !== 'ALT_CHANGE') {
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
@@ -558,10 +649,7 @@
     });
 
     document.getElementById('btn-speed_up').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         if (currentCommandType !== 'SPD_CHANGE') {
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
@@ -572,10 +660,7 @@
     });
 
     document.getElementById('btn-speed_down').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-atc-plane').innerText = "Select a Plane first.";
-            return;
-        }
+        if (!selectedPlane) return;
         if (currentCommandType !== 'SPD_CHANGE') {
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
@@ -594,44 +679,22 @@
     });
 
     document.getElementById('btn-send').addEventListener('click', () => {
-        if (!selectedPlane) {
-            document.getElementById('comm-plane-atc').innerText = "Tower, What plane are you addressing?";
-            return;
-        }
-
+        if (!selectedPlane) return;
         let pCode = selectedPlane.code;
         let sentText = commandDetails;
         let replyText = "";
-
-        if (currentCommandType === 'TURN' || sentText.includes("Change Heading to:")) {
-            let numMatch = sentText.match(/\d+/);
-            if (!numMatch || numMatch[0].length < 3 || parseInt(numMatch[0], 10) > 360) {
-                document.getElementById('comm-plane-atc').innerText = `Plane-${pCode}: ${sentText}? Tower, Say Again!`;
-                commandDetails = "";
-                currentCommandType = null;
-                updateDisplayLines();
-                return;
-            }
-        } else if (currentCommandType !== 'HEADING' && currentCommandType !== 'ALTITUDE' && currentCommandType !== 'SPEED' && currentCommandType !== 'ALT_CHANGE' && currentCommandType !== 'SPD_CHANGE') {
-            document.getElementById('comm-plane-atc').innerText = `Plane-${pCode}: ${sentText}? Tower, Say Again!`;
-            commandDetails = "";
-            currentCommandType = null;
-            updateDisplayLines();
-            return;
-        }
 
         if (sentText === "Say Heading!") {
             replyText = `Plane-${pCode}: Heading is ${Math.round(selectedPlane.heading)}`;
         } else if (sentText === "Say Altitude!") {
             replyText = `Plane-${pCode}: Altitude is ${selectedPlane.targetAltitude} feet`;
         } else if (sentText === "Say Speed!") {
-            replyText = `Plane-${pCode}: Speed is ${selectedPlane.currentSpeed} knots.`;
-        } else if (currentCommandType === 'TURN' || sentText.includes("Change Heading to:")) {
+            replyText = `Plane-${pCode}: Speed is ${Math.round(selectedPlane.currentSpeed)} knots.`;
+        } else if (currentCommandType === 'TURN') {
             let isLeft = sentText.includes("Left");
             let numMatch = sentText.match(/\d+/);
             if (numMatch) {
-                let targetHdg = parseInt(numMatch[0], 10);
-                selectedPlane.targetHeading = targetHdg;
+                selectedPlane.targetHeading = parseInt(numMatch[0], 10);
                 selectedPlane.turnDirection = isLeft ? 'L' : 'R';
                 selectedPlane.isEstablished = sentText.includes("-Establish");
                 selectedPlane.state = "TURNING"; 
@@ -649,16 +712,15 @@
         commandDetails = "";
         currentCommandType = null;
         updateDisplayLines();
+        updateFlightProgressStrips();
     });
 
     let lastTime = 0;
     let seconds = 0;
     let counterContainer = document.getElementById('radar-counter');
-    let trailContainer = document.getElementById('trail-container');
 
-    let gameRunning = true;
     function updateCounter() {
-        if (!counterContainer || !gameRunning) return;
+        if (!counterContainer) return;
         counterContainer.innerHTML = 
             '<div style="display: flex; justify-content: center; align-items: center;">' +
                 '<div style="text-align: center;">' +
@@ -666,7 +728,7 @@
                     '<div style="font-size: 10px; color: #555; margin-top: 2px;">SECONDS</div>' +
                 '</div>' +
             '</div>';
-        seconds++;
+        seconds += SIMULATION.gameSpeed;
     }
 
     const setupButton = (id, upImg, doImg) => {
@@ -692,18 +754,72 @@
     setupButton('btn-eight', 'But_8_Up.png', 'But_8_Do.png');
     setupButton('btn-nine', 'But_9_Up.png', 'But_9_Do.png');
     setupButton('btn-altitude', 'But_Altitude_Up.png', 'But_Altitude_Do.png');
-    setupButton('btn-altitude_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Do.png');
+    setupButton('btn-altitude_down', 'But_down_Up.png', 'But_down_Up.png');
+    setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Up.png');
     setupButton('btn-speed', 'But_speed_Up.png', 'But_speed_Up.png');
-    setupButton('btn-speed_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Do.png');
+    setupButton('btn-speed_down', 'But_down_Up.png', 'But_down_Up.png');
+    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Up.png');
 	setupButton('btn-send', 'But_Send_Up.png', 'But_Send_Do.png');
 	setupButton('btn-clear', 'But_Clear_Up.png', 'But_Clear_Do.png');
 
+    function updateFlightProgressStrips() {
+        const sectors = [
+            { id: 'strips-sea', center: { x: 415, y: 290 } },
+            { id: 'strips-lake', center: { x: 945, y: 322 } },
+            { id: 'strips-river', center: { x: 403, y: 778 } }
+        ];
+
+        sectors.forEach(sector => {
+            const container = document.getElementById(sector.id);
+            if (!container) return;
+            container.innerHTML = '';
+
+            let activePlanes = planes.filter(p => 
+                Math.abs(p.holdingCenterX - sector.center.x) < 5 && 
+                Math.abs(p.holdingCenterY - sector.center.y) < 5 &&
+                p.state !== "LANDED"
+            );
+
+            activePlanes.forEach((p, index) => {
+                let strip = document.createElement('div');
+                strip.className = `fps-strip ${index >= 6 ? 'stacked' : ''}`;
+                
+                if (selectedPlane === p) {
+                    strip.style.backgroundColor = '#00c000';
+                    strip.style.color = '#ffffff';
+                }
+
+                let isRmaGreen = (p.x > 400 && p.x < 1000); 
+                let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
+
+                let hdText = "H";
+                if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+                    hdText = Math.round(p.heading);
+                    if (p.isEstablished) hdText += "e";
+                }
+
+                strip.innerHTML = `
+                    <div class="strip-col-aca">${p.code}${p.type[0]}${p.altitude.toFixed(0)}</div>
+                    <div class="strip-col-hd">${hdText}</div>
+                    <div class="strip-col-sp">${Math.round(p.currentSpeed)}</div>
+                    <div class="strip-col-rma"><div class="rma-lamp ${lampClass}"></div></div>
+                `;
+
+                strip.addEventListener('click', () => {
+                    selectPlane(p);
+                });
+
+                container.appendChild(strip);
+            });
+        });
+    }
+
     function updateGame(timestamp) {
         if (!lastTime) lastTime = timestamp;
-        let deltaTime = (timestamp - lastTime) / 1000;
+        let realDeltaTime = (timestamp - lastTime) / 1000;
         lastTime = timestamp;
+
+        let deltaTime = realDeltaTime * SIMULATION.gameSpeed;
 
         timeSinceLastSpawn += deltaTime;
         if (timeSinceLastSpawn >= nextSpawnInterval) {
@@ -714,9 +830,9 @@
 
         planes.forEach(p => {
             if (p.currentSpeed < p.targetSpeed) {
-                p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 5 * deltaTime);
+                p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
             } else if (p.currentSpeed > p.targetSpeed) {
-                p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 5 * deltaTime);
+                p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 15 * deltaTime);
             }
 
             let currentAltFt = p.altitude * 1000;
@@ -728,10 +844,12 @@
 
             p.labelElement.innerText = `${p.code}-${p.altitude.toFixed(1)}`;
 
+            let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
+
             if (p.state === "FLYING_TO_HOLD") {
                 let rad = (p.heading - 90) * (Math.PI / 180);
-                p.x += Math.cos(rad) * p.speed * deltaTime;
-                p.y += Math.sin(rad) * p.speed * deltaTime;
+                p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
+                p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
 
                 let triggerReached = false;
                 if (p.triggerType === "Y" && p.y <= p.triggerVal) triggerReached = true;
@@ -743,7 +861,7 @@
                 }
             } 
             else if (p.state === "HOLDING") {
-                let angularSpeed = p.speed / p.holdingRadius; 
+                let angularSpeed = speedPxPerSec / p.holdingRadius; 
                 p.holdingAngle += angularSpeed * deltaTime;
 
                 p.x = p.holdingCenterX + p.holdingRadius * Math.cos(p.holdingAngle);
@@ -751,24 +869,23 @@
 
                 p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
             }
-                        else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+            else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                 let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
                 
                 if (Math.abs(diff) > 1) {
-                    let turnRate = 45 * deltaTime; 
+                    // Aangepast: realistischer en rustiger bochtentempo (3 tot 5 graden per sec)
+                    let maxTurnRate = (p.currentSpeed > 180) ? 3 : 5; 
+                    let turnRate = maxTurnRate * deltaTime; 
                     
-                    // Hier controleren we nu of er specifiek voor Links (L) of Rechts (R) is gekozen:
                     if (p.turnDirection === 'L') {
-                        p.heading -= turnRate; // Dwingt linksom te draaien
+                        p.heading -= turnRate; 
                     } else if (p.turnDirection === 'R') {
-                        p.heading += turnRate; // Dwingt rechtsom te draaien
+                        p.heading += turnRate; 
                     } else {
-                        // Automatische kortste bocht als er geen L/R is meegegeven
                         if (diff > 0) p.heading += turnRate;
                         else p.heading -= turnRate;
                     }
                     
-                    // Normaliseer de koers altijd tussen 0 en 360 graden
                     p.heading = (p.heading + 360) % 360;
                 } else {
                     p.heading = p.targetHeading;
@@ -776,11 +893,9 @@
                 }
 
                 let rad = (p.heading - 90) * (Math.PI / 180);
-                let moveFactor = p.speed * (p.currentSpeed / 200); 
-                p.x += Math.cos(rad) * moveFactor * deltaTime;
-                p.y += Math.sin(rad) * moveFactor * deltaTime;
+                p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
+                p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
             }
-
 
             p.element.style.left = p.x + 'px';
             p.element.style.top = p.y + 'px';
@@ -801,10 +916,15 @@
             }
         });
 
+        if (selectedPlane) {
+            updateCoordsDisplay();
+        }
+
         renderAllTrails();
         requestAnimationFrame(updateGame);
     }
 
+    let trailContainer = document.getElementById('trail-container');
     function renderAllTrails() {
         trailContainer.innerHTML = '';
         planes.forEach(p => {
