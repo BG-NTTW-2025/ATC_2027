@@ -135,9 +135,9 @@
             background-color: #e8f4f8;
         }
 
-        .strip-col-aca { width: 45px; padding-left: 4px; overflow: hidden; white-space: nowrap; }
-        .strip-col-hd  { width: 45px; text-align: center; overflow: hidden; white-space: nowrap; }
-        .strip-col-sp  { width: 45px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .strip-col-aca { width: 65px; padding-left: 4px; overflow: hidden; white-space: nowrap; }
+        .strip-col-hd  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .strip-col-sp  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
         .strip-col-rma { width: 30px; display: flex; justify-content: center; align-items: center; }
 
         .rma-lamp {
@@ -321,10 +321,10 @@
         <div id="speed-control-ui">
             Speed: 
             <span class="speed-btn active" onclick="setGameSpeed(1)">1x</span>
-            <span class="speed-btn" onclick="setGameSpeed(2)">2x</span>
-            <span class="speed-btn" onclick="setGameSpeed(3)">3x</span>
-            <span class="speed-btn" onclick="setGameSpeed(4)">4x</span>
-            <span class="speed-btn" onclick="setGameSpeed(5)">5x</span>
+            <span class="speed-btn" onclick="setGameSpeed(20)">20x</span>
+            <span class="speed-btn" onclick="setGameSpeed(30)">30x</span>
+            <span class="speed-btn" onclick="setGameSpeed(40)">40x</span>
+            <span class="speed-btn" onclick="setGameSpeed(50)">50x</span>
         </div>
 
         <div id="heading-control-group">
@@ -444,82 +444,111 @@
     };
 
     function spawnNewPlane() {
-        let code = getPlaneCode(nextPlaneIndex);
-        nextPlaneIndex++;
-
-        let t = routeTemplates[Math.floor(Math.random() * routeTemplates.length)];
-        let typeKeys = Object.keys(AIRCRAFT_TYPES);
-        let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
-        let pTypeData = AIRCRAFT_TYPES[pTypeName];
-
-        let possibleAltitudes = [7.0, 8.0, 9.0];
-        let planesInThisHolding = planes.filter(p => 
-            p.holdingCenterX === t.holdingCenterX && p.holdingCenterY === t.holdingCenterY
-        );
-
-        let takenAltitudes = planesInThisHolding.map(p => p.altitude);
-        let freeAltitudes = possibleAltitudes.filter(alt => !takenAltitudes.includes(alt));
-
-        let assignedAltitude;
-        if (freeAltitudes.length > 0) {
-            assignedAltitude = freeAltitudes[Math.floor(Math.random() * freeAltitudes.length)];
-        } else {
-            assignedAltitude = possibleAltitudes[Math.floor(Math.random() * possibleAltitudes.length)];
-        }
-
-        let planeImg = document.createElement('img');
-        planeImg.src = pTypeData.img;
-        planeImg.className = 'dynamic-plane';
-        
-        let labelDiv = document.createElement('div');
-        labelDiv.className = 'dynamic-label';
-        labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
-
-        document.getElementById('planes-layer').appendChild(planeImg);
-        document.getElementById('planes-layer').appendChild(labelDiv);
-
-        let initialKnots = pTypeData.cruiseKnots;
-
-        let newPlane = {
-            code: code,
-            type: pTypeName,
-            maxSpeed: pTypeData.maxSpeed,
-            altitude: assignedAltitude,            
-            targetAltitude: assignedAltitude * 1000, 
-            currentSpeed: initialKnots,                     
-            targetSpeed: initialKnots,                      
-            x: t.startX,
-            y: t.startY,
-            heading: t.heading,
-            targetHeading: t.heading,
-            turnDirection: null,                   
-            isEstablished: false,
-            state: "FLYING_TO_HOLD",
-            
-            holdingCenterX: t.holdingCenterX,
-            holdingCenterY: t.holdingCenterY,
-            holdingRadius: t.holdingRadius,
-            holdingAngle: 0,
-
-            targetX: t.targetX,
-            targetY: t.targetY,
-            triggerType: t.triggerType,
-            triggerVal: t.triggerVal,
-
-            trailPoints: [],
-            element: planeImg,
-            labelElement: labelDiv
-        };
-
-        labelDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectPlane(newPlane);
-        });
-
-        planes.push(newPlane);
-        document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pTypeName}) binnengekomen.`;
-        updateFlightProgressStrips();
+    // 1. Controleer eerst of het totale aantal actieve vliegtuigen groter of gelijk is aan 24
+    let totalActivePlanes = planes.filter(p => p.state !== "LANDED").length;
+    if (totalActivePlanes >= 24) {
+        return; // Stop spawn als totaal > 24
     }
+
+    // 2. Tel hoeveel vliegtuigen er totaal in een holding ("H") zitten (state is HOLDING of FLYING_TO_HOLD)
+    let totalInHolding = planes.filter(p => p.state === "HOLDING" || p.state === "FLYING_TO_HOLD").length;
+    if (totalInHolding >= 12) {
+        return; // Stop spawn als er al 12 of meer in de holding zitten
+    }
+
+    // Filter daarnaast op routes die zelf ook nog ruimte hebben (optioneel per holding apart maximaal 12 verdeeld)
+    let availableRoutes = routeTemplates.filter(t => {
+        let planesInThisHolding = planes.filter(p => 
+            p.holdingCenterX === t.holdingCenterX && 
+            p.holdingCenterY === t.holdingCenterY && 
+            (p.state === "HOLDING" || p.state === "FLYING_TO_HOLD")
+        );
+        return planesInThisHolding.length < 12;
+    });
+
+    if (availableRoutes.length === 0) {
+        return; 
+    }
+
+    let t = availableRoutes[Math.floor(Math.random() * availableRoutes.length)];
+
+    let code = getPlaneCode(nextPlaneIndex);
+    nextPlaneIndex++;
+
+    let typeKeys = Object.keys(AIRCRAFT_TYPES);
+    let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+    let pTypeData = AIRCRAFT_TYPES[pTypeName];
+
+    let possibleAltitudes = [7.0, 8.0, 9.0];
+    let planesInThisHolding = planes.filter(p => 
+        p.holdingCenterX === t.holdingCenterX && 
+        p.holdingCenterY === t.holdingCenterY &&
+        (p.state === "HOLDING" || p.state === "FLYING_TO_HOLD")
+    );
+
+    let takenAltitudes = planesInThisHolding.map(p => p.altitude);
+    let freeAltitudes = possibleAltitudes.filter(alt => !takenAltitudes.includes(alt));
+
+    let assignedAltitude;
+    if (freeAltitudes.length > 0) {
+        assignedAltitude = freeAltitudes[Math.floor(Math.random() * freeAltitudes.length)];
+    } else {
+        assignedAltitude = possibleAltitudes[Math.floor(Math.random() * possibleAltitudes.length)];
+    }
+
+    let planeImg = document.createElement('img');
+    planeImg.src = pTypeData.img;
+    planeImg.className = 'dynamic-plane';
+    
+    let labelDiv = document.createElement('div');
+    labelDiv.className = 'dynamic-label';
+    labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
+
+    document.getElementById('planes-layer').appendChild(planeImg);
+    document.getElementById('planes-layer').appendChild(labelDiv);
+
+    let initialKnots = pTypeData.cruiseKnots;
+
+    let newPlane = {
+        code: code,
+        type: pTypeName,
+        maxSpeed: pTypeData.maxSpeed,
+        altitude: assignedAltitude,            
+        targetAltitude: assignedAltitude * 1000, 
+        currentSpeed: initialKnots,                     
+        targetSpeed: initialKnots,                      
+        x: t.startX,
+        y: t.startY,
+        heading: t.heading,
+        targetHeading: t.heading,
+        turnDirection: null,                   
+        isEstablished: false,
+        state: "FLYING_TO_HOLD",
+        
+        holdingCenterX: t.holdingCenterX,
+        holdingCenterY: t.holdingCenterY,
+        holdingRadius: t.holdingRadius,
+        holdingAngle: 0,
+
+        targetX: t.targetX,
+        targetY: t.targetY,
+        triggerType: t.triggerType,
+        triggerVal: t.triggerVal,
+
+        trailPoints: [],
+        element: planeImg,
+        labelElement: labelDiv
+    };
+
+    labelDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectPlane(newPlane);
+    });
+
+    planes.push(newPlane);
+    document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pTypeName}) binnengekomen.`;
+    updateFlightProgressStrips();
+}
 
     function selectPlane(plane) {
         selectedPlane = plane;
@@ -799,7 +828,7 @@
                 }
 
                 strip.innerHTML = `
-                    <div class="strip-col-aca">${p.code}${p.type[0]}${p.altitude.toFixed(0)}</div>
+                    <div class="strip-col-aca">${p.code}-${p.type[0].toLowerCase()}-${p.altitude.toFixed(0)}</div>
                     <div class="strip-col-hd">${hdText}</div>
                     <div class="strip-col-sp">${Math.round(p.currentSpeed)}</div>
                     <div class="strip-col-rma"><div class="rma-lamp ${lampClass}"></div></div>
@@ -822,11 +851,11 @@
         let deltaTime = realDeltaTime * SIMULATION.gameSpeed;
 
         timeSinceLastSpawn += deltaTime;
-        if (timeSinceLastSpawn >= nextSpawnInterval) {
-            timeSinceLastSpawn = 0;
-            nextSpawnInterval = getRandomSpawnInterval();
-            spawnNewPlane();
-        }
+    if (timeSinceLastSpawn >= nextSpawnInterval) {
+        timeSinceLastSpawn = 0;
+        nextSpawnInterval = getRandomSpawnInterval();
+        spawnNewPlane(); // De functie zelf beslist nu of het mag op basis van jouw regels (max 24 totaal, max 12 in H)
+    }
 
         planes.forEach(p => {
             if (p.currentSpeed < p.targetSpeed) {
