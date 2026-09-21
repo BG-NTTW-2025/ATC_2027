@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>ATC Radar Simulator - Landing Logic</title>
+    <title>ATC Radar Simulator - Refined Logic</title>
     <style>
         html, body {
             margin: 0;
@@ -387,6 +387,9 @@
         gameLevel: 1 
     };
 
+    const RUNWAY = { x: 722, y: 535 };
+    const PIXELS_PER_NM = SIMULATION.pixelsPerKm * SIMULATION.kmPerNM;
+
     function knotsToPixelsPerSecond(knots) {
         return knots * SIMULATION.kmPerNM / 3600 * SIMULATION.pixelsPerKm;
     }
@@ -470,9 +473,9 @@
     ];
 
     const AIRCRAFT_TYPES = {
-        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, maxSpeed: 250 },
-        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, maxSpeed: 230 },
-        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, maxSpeed: 220 }
+        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, minSpeed: 160, maxSpeed: 250 },
+        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, minSpeed: 160, maxSpeed: 250 },
+        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, minSpeed: 120, maxSpeed: 180 }
     };
 
     function spawnNewPlane() {
@@ -534,6 +537,7 @@
         let newPlane = {
             code: code,
             type: pTypeName,
+            minSpeed: pTypeData.minSpeed,
             maxSpeed: pTypeData.maxSpeed,
             altitude: assignedAltitude,            
             targetAltitude: assignedAltitude * 1000, 
@@ -545,6 +549,7 @@
             targetHeading: t.heading,
             turnDirection: null,                   
             isEstablished: false,
+            inFinalApproach: false,
             state: "FLYING_TO_HOLD",
             
             holdingCenterX: t.holdingCenterX,
@@ -694,7 +699,7 @@
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
         }
-        bufferTargetAltitude = Math.max(0, bufferTargetAltitude - 1000); // Kan nu naar 0 voor landing!
+        bufferTargetAltitude = Math.max(0, bufferTargetAltitude - 1000);
         commandDetails = `Change Altitude to: ${bufferTargetAltitude} feet`;
         updateDisplayLines();
     });
@@ -716,7 +721,7 @@
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
         }
-        bufferTargetSpeed = Math.max(0, bufferTargetSpeed - 10); // Kan nu naar 0 voor remmen!
+        bufferTargetSpeed = Math.max(0, bufferTargetSpeed - 10);
         commandDetails = `Change Speed to: ${bufferTargetSpeed} knots`;
         updateDisplayLines();
     });
@@ -731,6 +736,15 @@
 
     document.getElementById('btn-send').addEventListener('click', () => {
         if (!selectedPlane) return;
+
+        if (selectedPlane.inFinalApproach) {
+            document.getElementById('comm-plane-atc').innerText = `Plane-${selectedPlane.code}: Negatief, final approach!`;
+            commandDetails = "";
+            currentCommandType = null;
+            updateDisplayLines();
+            return;
+        }
+
         let pCode = selectedPlane.code;
         let sentText = commandDetails;
         let replyText = "";
@@ -752,11 +766,21 @@
             }
             replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
         } else if (currentCommandType === 'ALT_CHANGE') {
-            selectedPlane.targetAltitude = bufferTargetAltitude;
-            replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
+            // Controleer wettelijke hoogtelimieten (2000 tot 9000 ft, behalve tijdens landing naar 0)
+            if (bufferTargetAltitude > 0 && (bufferTargetAltitude < 2000 || bufferTargetAltitude > 9000)) {
+                replyText = `Plane-${pCode}: wrong lev`;
+            } else {
+                selectedPlane.targetAltitude = bufferTargetAltitude;
+                replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
+            }
         } else if (currentCommandType === 'SPD_CHANGE') {
-            selectedPlane.targetSpeed = bufferTargetSpeed;
-            replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
+            // Controleer snelheidslimieten per vliegtuigtype (behalve bij remmen naar 0 op baan)
+            if (bufferTargetSpeed > 0 && (bufferTargetSpeed < selectedPlane.minSpeed || bufferTargetSpeed > selectedPlane.maxSpeed)) {
+                replyText = `Plane-${pCode}: wrong spd`;
+            } else {
+                selectedPlane.targetSpeed = bufferTargetSpeed;
+                replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
+            }
         }
 
         document.getElementById('comm-plane-atc').innerText = replyText;
@@ -808,8 +832,8 @@
     setupButton('btn-altitude_down', 'But_down_Up.png', 'But_down_Up.png');
     setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Up.png');
     setupButton('btn-speed', 'But_speed_Up.png', 'But_speed_Up.png');
-    setupButton('btn-speed_down', 'But_down_Up.png', 'But_down_Up.png');
-    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Up.png');
+    setupButton('btn-speed_down', 'But_speed_down_Up.png', 'But_speed_down_Up.png');
+    setupButton('btn-speed_up', 'But_speed_up_Up.png', 'But_speed_up_Up.png');
 	setupButton('btn-send', 'But_Send_Up.png', 'But_Send_Do.png');
 	setupButton('btn-clear', 'But_Clear_Up.png', 'But_Clear_Do.png');
 
@@ -840,7 +864,7 @@
                     strip.style.color = '#ffffff';
                 }
 
-                // Echte RMA check op basis van de zone (x: 536-787, y: 539-788)
+                // Realtime RMA check op basis van de echte x/y coördinaten
                 let isRmaGreen = (p.x >= 536 && p.x <= 787 && p.y >= 539 && p.y <= 788); 
                 let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
 
@@ -848,6 +872,8 @@
                 if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                     hdText = Math.round(p.heading);
                     if (p.isEstablished) hdText += "e";
+                } else if (p.state === "ILS_LOCKED") {
+                    hdText = "loc/EST";
                 } else if (p.state === "LANDING") {
                     hdText = "LAND";
                 }
@@ -885,29 +911,76 @@
         planes.forEach(p => {
             if (p.state === "LANDED") return;
 
-            // LANDINGSBAAN CHECK (Omgeving van x: 714-730, y: 499-535)
+            let distPx = p.y - RUNWAY.y;
+            let distNM = Math.max(0, distPx / PIXELS_PER_NM);
+            let glideSlopeAlt = distNM * 300; 
+
+            // --- 1. ILS INTERCEPTIE CHECK (Geleidelijk indraaien naar koers 000) ---
+            if (p.isEstablished && p.state !== "ILS_LOCKED" && p.state !== "LANDING" && p.state !== "OVERSHOOT") {
+                let nearCenterline = Math.abs(p.x - RUNWAY.x) < 6; 
+                if (nearCenterline) {
+                    let validAngle = (p.heading >= 0 && p.heading <= 30) || (p.heading >= 330 && p.heading <= 360);
+                    let validAlt = (p.altitude * 1000) <= (glideSlopeAlt + 200);
+
+                    if (validAngle && validAlt) {
+                        p.state = "ILS_LOCKED";
+                        p.targetHeading = 0; // Zet koers op 0, draait er nu geleidelijk naartoe!
+                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} locked op ILS, indraaien naar 000.`;
+                    } else {
+                        p.isEstablished = false; 
+                        let reason = !validAngle ? "verkeerde hoek" : "te hoog voor glijpad";
+                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} mist ILS koppeling: ${reason}.`;
+                    }
+                }
+            }
+
+            // --- 2. AUTONOME ILS GELEIDING & OVERSHOOT CHECKS ---
+            if (p.state === "ILS_LOCKED") {
+                p.targetAltitude = glideSlopeAlt / 1000;
+                p.targetSpeed = 140;
+
+                if (distNM <= 10) {
+                    p.inFinalApproach = true;
+                    let isTooHigh = (p.altitude * 1000) > (glideSlopeAlt + 400);
+                    let isTooFast = p.currentSpeed > 180;
+
+                    if (isTooHigh || isTooFast) {
+                        p.state = "OVERSHOOT";
+                        p.isEstablished = false;
+                        p.targetAltitude = 3.0;
+                        p.targetHeading = 80;
+                        
+                        let reasonText = isTooHigh && isTooFast ? "too high and too fast" : (isTooHigh ? "too high" : "too fast");
+                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} OVERSHOOT (${reasonText})!`;
+                    }
+                }
+
+                if (distPx <= 0) {
+                    p.state = "LANDING";
+                    p.targetSpeed = 0;
+                    p.targetAltitude = 0;
+                }
+            }
+
             let onRunway = (p.x >= 714 && p.x <= 730 && p.y >= 499 && p.y <= 535);
-            if (onRunway && p.state !== "LANDING") {
+            if (onRunway && p.state !== "LANDING" && p.state !== "ILS_LOCKED") {
                 p.state = "LANDING";
                 p.targetSpeed = 0;
                 p.targetAltitude = 0;
-                document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} is geland op de baan!`;
             }
 
-            // Als het vliegtuig aan het landen is, remt het af tot snelheid 0
             if (p.state === "LANDING") {
                 p.currentSpeed = Math.max(0, p.currentSpeed - 30 * deltaTime);
                 p.altitude = Math.max(0, p.altitude - 1.0 * deltaTime);
 
                 if (p.currentSpeed === 0 && p.altitude === 0) {
                     p.state = "LANDED";
-                    // Verwijder vliegtuigvisuals van het scherm
                     if (p.element) p.element.remove();
                     if (p.labelElement) p.labelElement.remove();
                     updateFlightProgressStrips();
                     return;
                 }
-            } else {
+            } else if (p.state !== "ILS_LOCKED") {
                 if (p.currentSpeed < p.targetSpeed) {
                     p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
                 } else if (p.currentSpeed > p.targetSpeed) {
@@ -949,7 +1022,7 @@
 
                 p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
             }
-            else if (p.state === "TURNING" || p.state === "FLYING_HEADING" || p.state === "LANDING") {
+            else if (p.state === "TURNING" || p.state === "FLYING_HEADING" || p.state === "ILS_LOCKED" || p.state === "OVERSHOOT") {
                 let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
                 
                 if (Math.abs(diff) > 0.5 && p.state !== "LANDING") {
@@ -962,12 +1035,12 @@
                     
                     if (Math.abs(diff) <= turnRate) {
                         p.heading = p.targetHeading;
-                        p.state = "FLYING_HEADING";
+                        if (p.state === "TURNING") p.state = "FLYING_HEADING";
                     } else {
                         if (p.turnDirection === 'L') {
                             p.heading -= turnRate; 
-                        } else if (p.turnDirection === 'R') {
-                            p.heading += turnRate; 
+                        } else if (p.heading === undefined) {
+                            p.heading += 0;
                         } else {
                             if (diff > 0) p.heading += turnRate;
                             else p.heading -= turnRate;
@@ -975,9 +1048,9 @@
                     }
                     
                     p.heading = (p.heading + 360) % 360;
-                } else if (p.state !== "LANDING") {
+                } else if (p.state !== "LANDING" && p.state !== "ILS_LOCKED") {
                     p.heading = p.targetHeading;
-                    p.state = "FLYING_HEADING";
+                    if (p.state === "TURNING") p.state = "FLYING_HEADING";
                 }
 
                 let rad = (p.heading - 90) * (Math.PI / 180);
@@ -1007,6 +1080,9 @@
         if (selectedPlane) {
             updateCoordsDisplay();
         }
+
+        // Update realtime de RMA lampjes op de strips tijdens het vliegen
+        updateFlightProgressStrips();
 
         renderAllTrails();
         requestAnimationFrame(updateGame);
