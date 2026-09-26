@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>ATC Radar Simulator - Refined Logic</title>
+    <title>ATC Radar Simulator - FPS Boards</title>
     <style>
         html, body {
             margin: 0;
@@ -46,6 +46,16 @@
             pointer-events: none;
         }
 
+        #trail-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1440px;
+            height: 900px;
+            z-index: 4;
+            pointer-events: none;
+        }
+
         #dashboard-frame {
             position: absolute;
             left: 0;
@@ -62,6 +72,7 @@
             height: auto;
             transform: translate(-50%, -50%);
             z-index: 5;
+            will-change: transform, left, top; /* GPU Optimalisatie */
         }
 
         .dynamic-label {
@@ -78,17 +89,7 @@
             transform: translate(18px, -18px); 
             z-index: 100;
             pointer-events: auto;
-        }
-
-        .trail-dot {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background-color: blue;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 5;
+            will-change: left, top; /* GPU Optimalisatie */
         }
 
         .strip-container {
@@ -202,29 +203,14 @@
             border: 1px solid #1a5276;
             border-radius: 4px;
         }
-
-        #level-control-ui {
-            position: absolute;
-            left: 830px;
-            top: 865px;
-            z-index: 25;
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            font-weight: bold;
-            background: #d0e8f2;
-            padding: 4px 8px;
-            border: 1px solid #1a5276;
-            border-radius: 4px;
-        }
-
-        .ui-btn {
+        .speed-btn {
             cursor: pointer;
             padding: 2px 5px;
             margin: 0 1px;
             background: #fff;
             border: 1px solid #333;
         }
-        .ui-btn.active {
+        .speed-btn.active {
             background: #00cc00;
             color: #fff;
         }
@@ -318,7 +304,7 @@
         </div>
 
         <div id="planes-layer">
-            <div id="trail-container"></div>
+            <canvas id="trail-canvas" width="1440" height="900"></canvas>
         </div>
 
         <div id="strips-sea" class="strip-container"></div>
@@ -334,17 +320,11 @@
 
         <div id="speed-control-ui">
             Speed: 
-            <span class="ui-btn speed-btn active" onclick="setGameSpeed(1)">1x</span>
-            <span class="ui-btn speed-btn" onclick="setGameSpeed(20)">20x</span>
-            <span class="ui-btn speed-btn" onclick="setGameSpeed(30)">30x</span>
-            <span class="ui-btn speed-btn" onclick="setGameSpeed(40)">40x</span>
-            <span class="ui-btn speed-btn" onclick="setGameSpeed(50)">50x</span>
-        </div>
-
-        <div id="level-control-ui">
-            Level: 
-            <span class="ui-btn level-btn active" onclick="setGameLevel(1)">Lvl 1</span>
-            <span class="ui-btn level-btn" onclick="setGameLevel(2)">Lvl 2</span>
+            <span class="speed-btn active" onclick="setGameSpeed(1)">1x</span>
+            <span class="speed-btn" onclick="setGameSpeed(20)">20x</span>
+            <span class="speed-btn" onclick="setGameSpeed(30)">30x</span>
+            <span class="speed-btn" onclick="setGameSpeed(40)">40x</span>
+            <span class="speed-btn" onclick="setGameSpeed(50)">50x</span>
         </div>
 
         <div id="heading-control-group">
@@ -365,7 +345,6 @@
             <img src="graphics/But_Altitude_Up.png" alt="Altitude Knop" id="btn-altitude">
             <img src="graphics/But_down_Up.png" alt="Altitude Down Knop" id="btn-altitude_down">
             <img src="graphics/But_up_Up.png" alt="Altitude Up Knop" id="btn-altitude_up">
-			
             <img src="graphics/But_Speed_Up.png" alt="Speed Knop" id="btn-speed">
             <img src="graphics/But_down_Up.png" alt="Speed Down Knop" id="btn-speed_down">
             <img src="graphics/But_up_Up.png" alt="Speed Up Knop" id="btn-speed_up">
@@ -384,12 +363,8 @@
     const SIMULATION = {
         pixelsPerKm: 4.4,
         kmPerNM: 1.852,
-        gameSpeed: 1,
-        gameLevel: 1 
+        gameSpeed: 1
     };
-
-    const RUNWAY = { x: 722, y: 535 };
-    const PIXELS_PER_NM = SIMULATION.pixelsPerKm * SIMULATION.kmPerNM;
 
     function knotsToPixelsPerSecond(knots) {
         return knots * SIMULATION.kmPerNM / 3600 * SIMULATION.pixelsPerKm;
@@ -403,17 +378,6 @@
                 btn.classList.add('active');
             }
         });
-    }
-
-    function setGameLevel(level) {
-        SIMULATION.gameLevel = level;
-        document.querySelectorAll('.level-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.innerText.includes('Lvl ' + level)) {
-                btn.classList.add('active');
-            }
-        });
-        document.getElementById('comm-alerts').innerText = `Spel gezet op Level ${level}.`;
     }
 
     function resizeGame() {
@@ -474,109 +438,114 @@
     ];
 
     const AIRCRAFT_TYPES = {
-        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, minSpeed: 160, maxSpeed: 250 },
-        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, minSpeed: 160, maxSpeed: 250 },
-        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, minSpeed: 120, maxSpeed: 180 }
+        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, maxSpeed: 250 },
+        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, maxSpeed: 230 },
+        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, maxSpeed: 220 }
     };
 
     function spawnNewPlane() {
-        let totalActivePlanes = planes.filter(p => p.state !== "LANDED").length;
-        if (totalActivePlanes >= 24) return;
+    let totalActivePlanes = planes.filter(p => p.state !== "LANDED").length;
+    if (totalActivePlanes >= 24) {
+        return; 
+    }
 
-        let totalInHolding = planes.filter(p => p.state === "HOLDING" || p.state === "FLYING_TO_HOLD").length;
-        if (totalInHolding >= 12) return;
+    let totalInHolding = planes.filter(p => p.state === "HOLDING" || p.state === "FLYING_TO_HOLD").length;
+    if (totalInHolding >= 12) {
+        return; 
+    }
 
-        let availableRoutes = routeTemplates.filter(t => {
-            let planesInThisHolding = planes.filter(p => 
-                p.holdingCenterX === t.holdingCenterX && 
-                p.holdingCenterY === t.holdingCenterY && 
-                (p.state === "HOLDING" || p.state === "FLYING_TO_HOLD")
-            );
-            return planesInThisHolding.length < 12;
-        });
-
-        if (availableRoutes.length === 0) return; 
-
-        let t = availableRoutes[Math.floor(Math.random() * availableRoutes.length)];
-        let code = getPlaneCode(nextPlaneIndex);
-        nextPlaneIndex++;
-
-        let typeKeys = Object.keys(AIRCRAFT_TYPES);
-        let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
-        let pTypeData = AIRCRAFT_TYPES[pTypeName];
-
-        let possibleAltitudes = [7.0, 8.0, 9.0];
+    let availableRoutes = routeTemplates.filter(t => {
         let planesInThisHolding = planes.filter(p => 
             p.holdingCenterX === t.holdingCenterX && 
-            p.holdingCenterY === t.holdingCenterY &&
+            p.holdingCenterY === t.holdingCenterY && 
             (p.state === "HOLDING" || p.state === "FLYING_TO_HOLD")
         );
+        return planesInThisHolding.length < 12;
+    });
 
-        let takenAltitudes = planesInThisHolding.map(p => p.altitude);
-        let freeAltitudes = possibleAltitudes.filter(alt => !takenAltitudes.includes(alt));
-
-        let assignedAltitude;
-        if (freeAltitudes.length > 0) {
-            assignedAltitude = freeAltitudes[Math.floor(Math.random() * freeAltitudes.length)];
-        } else {
-            assignedAltitude = possibleAltitudes[Math.floor(Math.random() * possibleAltitudes.length)];
-        }
-
-        let planeImg = document.createElement('img');
-        planeImg.src = pTypeData.img;
-        planeImg.className = 'dynamic-plane';
-        
-        let labelDiv = document.createElement('div');
-        labelDiv.className = 'dynamic-label';
-        labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
-
-        document.getElementById('planes-layer').appendChild(planeImg);
-        document.getElementById('planes-layer').appendChild(labelDiv);
-
-        let initialKnots = pTypeData.cruiseKnots;
-
-        let newPlane = {
-            code: code,
-            type: pTypeName,
-            minSpeed: pTypeData.minSpeed,
-            maxSpeed: pTypeData.maxSpeed,
-            altitude: assignedAltitude,            
-            targetAltitude: assignedAltitude * 1000, 
-            currentSpeed: initialKnots,                     
-            targetSpeed: initialKnots,                      
-            x: t.startX,
-            y: t.startY,
-            heading: t.heading,
-            targetHeading: t.heading,
-            turnDirection: null,                   
-            isEstablished: false,
-            inFinalApproach: false,
-            state: "FLYING_TO_HOLD",
-            
-            holdingCenterX: t.holdingCenterX,
-            holdingCenterY: t.holdingCenterY,
-            holdingRadius: t.holdingRadius,
-            holdingAngle: 0,
-
-            targetX: t.targetX,
-            targetY: t.targetY,
-            triggerType: t.triggerType,
-            triggerVal: t.triggerVal,
-
-            trailPoints: [],
-            element: planeImg,
-            labelElement: labelDiv
-        };
-
-        labelDiv.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectPlane(newPlane);
-        });
-
-        planes.push(newPlane);
-        document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pTypeName}) binnengekomen.`;
-        updateFlightProgressStrips();
+    if (availableRoutes.length === 0) {
+        return; 
     }
+
+    let t = availableRoutes[Math.floor(Math.random() * availableRoutes.length)];
+
+    let code = getPlaneCode(nextPlaneIndex);
+    nextPlaneIndex++;
+
+    let typeKeys = Object.keys(AIRCRAFT_TYPES);
+    let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+    let pTypeData = AIRCRAFT_TYPES[pTypeName];
+
+    let possibleAltitudes = [7.0, 8.0, 9.0];
+    let planesInThisHolding = planes.filter(p => 
+        p.holdingCenterX === t.holdingCenterX && 
+        p.holdingCenterY === t.holdingCenterY &&
+        (p.state === "HOLDING" || p.state === "FLYING_TO_HOLD")
+    );
+
+    let takenAltitudes = planesInThisHolding.map(p => p.altitude);
+    let freeAltitudes = possibleAltitudes.filter(alt => !takenAltitudes.includes(alt));
+
+    let assignedAltitude;
+    if (freeAltitudes.length > 0) {
+        assignedAltitude = freeAltitudes[Math.floor(Math.random() * freeAltitudes.length)];
+    } else {
+        assignedAltitude = possibleAltitudes[Math.floor(Math.random() * possibleAltitudes.length)];
+    }
+
+    let planeImg = document.createElement('img');
+    planeImg.src = pTypeData.img;
+    planeImg.className = 'dynamic-plane';
+    
+    let labelDiv = document.createElement('div');
+    labelDiv.className = 'dynamic-label';
+    labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
+
+    document.getElementById('planes-layer').appendChild(planeImg);
+    document.getElementById('planes-layer').appendChild(labelDiv);
+
+    let initialKnots = pTypeData.cruiseKnots;
+
+    let newPlane = {
+        code: code,
+        type: pTypeName,
+        maxSpeed: pTypeData.maxSpeed,
+        altitude: assignedAltitude,            
+        targetAltitude: assignedAltitude * 1000, 
+        currentSpeed: initialKnots,                     
+        targetSpeed: initialKnots,                      
+        x: t.startX,
+        y: t.startY,
+        heading: t.heading,
+        targetHeading: t.heading,
+        turnDirection: null,                   
+        isEstablished: false,
+        state: "FLYING_TO_HOLD",
+        
+        holdingCenterX: t.holdingCenterX,
+        holdingCenterY: t.holdingCenterY,
+        holdingRadius: t.holdingRadius,
+        holdingAngle: 0,
+
+        targetX: t.targetX,
+        targetY: t.targetY,
+        triggerType: t.triggerType,
+        triggerVal: t.triggerVal,
+
+        trailPoints: [],
+        element: planeImg,
+        labelElement: labelDiv
+    };
+
+    labelDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectPlane(newPlane);
+    });
+
+    planes.push(newPlane);
+    document.getElementById('comm-alerts').innerText = `Vlucht ${code} (${pTypeName}) binnengekomen.`;
+    updateFlightProgressStrips();
+}
 
     function selectPlane(plane) {
         selectedPlane = plane;
@@ -700,7 +669,7 @@
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
         }
-        bufferTargetAltitude = Math.max(0, bufferTargetAltitude - 1000);
+        bufferTargetAltitude = Math.max(3000, bufferTargetAltitude - 1000);
         commandDetails = `Change Altitude to: ${bufferTargetAltitude} feet`;
         updateDisplayLines();
     });
@@ -722,7 +691,7 @@
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
         }
-        bufferTargetSpeed = Math.max(0, bufferTargetSpeed - 10);
+        bufferTargetSpeed = Math.max(100, bufferTargetSpeed - 10);
         commandDetails = `Change Speed to: ${bufferTargetSpeed} knots`;
         updateDisplayLines();
     });
@@ -737,15 +706,6 @@
 
     document.getElementById('btn-send').addEventListener('click', () => {
         if (!selectedPlane) return;
-
-        if (selectedPlane.inFinalApproach) {
-            document.getElementById('comm-plane-atc').innerText = `Plane-${selectedPlane.code}: Negatief, final approach!`;
-            commandDetails = "";
-            currentCommandType = null;
-            updateDisplayLines();
-            return;
-        }
-
         let pCode = selectedPlane.code;
         let sentText = commandDetails;
         let replyText = "";
@@ -767,21 +727,11 @@
             }
             replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
         } else if (currentCommandType === 'ALT_CHANGE') {
-            // Controleer wettelijke hoogtelimieten (2000 tot 9000 ft, behalve tijdens landing naar 0)
-            if (bufferTargetAltitude > 0 && (bufferTargetAltitude < 2000 || bufferTargetAltitude > 9000)) {
-                replyText = `Plane-${pCode}: wrong lev`;
-            } else {
-                selectedPlane.targetAltitude = bufferTargetAltitude;
-                replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
-            }
+            selectedPlane.targetAltitude = bufferTargetAltitude;
+            replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
         } else if (currentCommandType === 'SPD_CHANGE') {
-            // Controleer snelheidslimieten per vliegtuigtype (behalve bij remmen naar 0 op baan)
-            if (bufferTargetSpeed > 0 && (bufferTargetSpeed < selectedPlane.minSpeed || bufferTargetSpeed > selectedPlane.maxSpeed)) {
-                replyText = `Plane-${pCode}: wrong spd`;
-            } else {
-                selectedPlane.targetSpeed = bufferTargetSpeed;
-                replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
-            }
+            selectedPlane.targetSpeed = bufferTargetSpeed;
+            replyText = `Plane-${pCode}: ${sentText}. ROGER!`;
         }
 
         document.getElementById('comm-plane-atc').innerText = replyText;
@@ -791,7 +741,7 @@
         updateFlightProgressStrips();
     });
 
-    let lastTime = 0;
+    let lastTime = performance.now();
     let seconds = 0;
     let counterContainer = document.getElementById('radar-counter');
 
@@ -831,12 +781,10 @@
     setupButton('btn-nine', 'But_9_Up.png', 'But_9_Do.png');
     setupButton('btn-altitude', 'But_Altitude_Up.png', 'But_Altitude_Do.png');
     setupButton('btn-altitude_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Do.png');
-    
-	setupButton('btn-speed', 'But_Speed_Up.png', 'But_Speed_Do.png');
+    setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Up.png');
+    setupButton('btn-speed', 'But_speed_Up.png', 'But_speed_Do.png');
     setupButton('btn-speed_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Do.png');
-	
+    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Up.png');
 	setupButton('btn-send', 'But_Send_Up.png', 'But_Send_Do.png');
 	setupButton('btn-clear', 'But_Clear_Up.png', 'But_Clear_Do.png');
 
@@ -867,18 +815,13 @@
                     strip.style.color = '#ffffff';
                 }
 
-                // Realtime RMA check op basis van de echte x/y coördinaten
-                let isRmaGreen = (p.x >= 536 && p.x <= 787 && p.y >= 539 && p.y <= 788); 
+                let isRmaGreen = (p.x > 400 && p.x < 1000); 
                 let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
 
                 let hdText = "H";
                 if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                     hdText = Math.round(p.heading);
                     if (p.isEstablished) hdText += "e";
-                } else if (p.state === "ILS_LOCKED") {
-                    hdText = "loc/EST";
-                } else if (p.state === "LANDING") {
-                    hdText = "LAND";
                 }
 
                 strip.innerHTML = `
@@ -897,97 +840,36 @@
         });
     }
 
-    function updateGame(timestamp) {
-        if (!lastTime) lastTime = timestamp;
+    const trailCanvas = document.getElementById('trail-canvas');
+    const ctx = trailCanvas.getContext('2d');
+
+    // BEPERKTE SIMULATIE LUS (Gecontroleerd op ~30 updates per seconde i.p.v. ongelimiteerd)
+    const UPDATE_INTERVAL = 1000 / 30; // ca. 33 milliseconde per update-stap
+    let accumulatedTime = 0;
+
+    function gameLoop(timestamp) {
         let realDeltaTime = (timestamp - lastTime) / 1000;
         lastTime = timestamp;
 
-        let deltaTime = realDeltaTime * SIMULATION.gameSpeed;
+        accumulatedTime += realDeltaTime * 1000;
 
-        timeSinceLastSpawn += deltaTime;
-        if (timeSinceLastSpawn >= nextSpawnInterval) {
-            timeSinceLastSpawn = 0;
-            nextSpawnInterval = getRandomSpawnInterval();
-            spawnNewPlane();
-        }
+        // Als er genoeg tijd verstreken is, voeren we een simulatie-stap uit
+        if (accumulatedTime >= UPDATE_INTERVAL) {
+            let deltaTime = (accumulatedTime / 1000) * SIMULATION.gameSpeed;
+            accumulatedTime = 0; // reset
 
-        planes.forEach(p => {
-            if (p.state === "LANDED") return;
-
-            let distPx = p.y - RUNWAY.y;
-            let distNM = Math.max(0, distPx / PIXELS_PER_NM);
-            let glideSlopeAlt = distNM * 300; 
-
-            // --- 1. ILS INTERCEPTIE CHECK (Geleidelijk indraaien naar koers 000) ---
-            if (p.isEstablished && p.state !== "ILS_LOCKED" && p.state !== "LANDING" && p.state !== "OVERSHOOT") {
-                let nearCenterline = Math.abs(p.x - RUNWAY.x) < 6; 
-                if (nearCenterline) {
-                    let validAngle = (p.heading >= 0 && p.heading <= 30) || (p.heading >= 330 && p.heading <= 360);
-                    let validAlt = (p.altitude * 1000) <= (glideSlopeAlt + 200);
-
-                    if (validAngle && validAlt) {
-                        p.state = "ILS_LOCKED";
-                        p.targetHeading = 0; // Zet koers op 0, draait er nu geleidelijk naartoe!
-                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} locked op ILS, indraaien naar 000.`;
-                    } else {
-                        p.isEstablished = false; 
-                        let reason = !validAngle ? "verkeerde hoek" : "te hoog voor glijpad";
-                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} mist ILS koppeling: ${reason}.`;
-                    }
-                }
+            timeSinceLastSpawn += deltaTime;
+            if (timeSinceLastSpawn >= nextSpawnInterval) {
+                timeSinceLastSpawn = 0;
+                nextSpawnInterval = getRandomSpawnInterval();
+                spawnNewPlane(); 
             }
 
-            // --- 2. AUTONOME ILS GELEIDING & OVERSHOOT CHECKS ---
-            if (p.state === "ILS_LOCKED") {
-                p.targetAltitude = glideSlopeAlt / 1000;
-                p.targetSpeed = 140;
-
-                if (distNM <= 10) {
-                    p.inFinalApproach = true;
-                    let isTooHigh = (p.altitude * 1000) > (glideSlopeAlt + 400);
-                    let isTooFast = p.currentSpeed > 180;
-
-                    if (isTooHigh || isTooFast) {
-                        p.state = "OVERSHOOT";
-                        p.isEstablished = false;
-                        p.targetAltitude = 3.0;
-                        p.targetHeading = 80;
-                        
-                        let reasonText = isTooHigh && isTooFast ? "too high and too fast" : (isTooHigh ? "too high" : "too fast");
-                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} OVERSHOOT (${reasonText})!`;
-                    }
-                }
-
-                if (distPx <= 0) {
-                    p.state = "LANDING";
-                    p.targetSpeed = 0;
-                    p.targetAltitude = 0;
-                }
-            }
-
-            let onRunway = (p.x >= 714 && p.x <= 730 && p.y >= 499 && p.y <= 535);
-            if (onRunway && p.state !== "LANDING" && p.state !== "ILS_LOCKED") {
-                p.state = "LANDING";
-                p.targetSpeed = 0;
-                p.targetAltitude = 0;
-            }
-
-            if (p.state === "LANDING") {
-                p.currentSpeed = Math.max(0, p.currentSpeed - 30 * deltaTime);
-                p.altitude = Math.max(0, p.altitude - 1.0 * deltaTime);
-
-                if (p.currentSpeed === 0 && p.altitude === 0) {
-                    p.state = "LANDED";
-                    if (p.element) p.element.remove();
-                    if (p.labelElement) p.labelElement.remove();
-                    updateFlightProgressStrips();
-                    return;
-                }
-            } else if (p.state !== "ILS_LOCKED") {
+            planes.forEach(p => {
                 if (p.currentSpeed < p.targetSpeed) {
                     p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
                 } else if (p.currentSpeed > p.targetSpeed) {
-                    p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 5 * deltaTime);
+                    p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 15 * deltaTime);
                 }
 
                 let currentAltFt = p.altitude * 1000;
@@ -996,114 +878,107 @@
                 } else if (currentAltFt > p.targetAltitude) {
                     p.altitude = Math.max(p.targetAltitude / 1000, p.altitude - 0.2 * deltaTime);
                 }
-            }
 
-            p.labelElement.innerText = `${p.code}-${p.altitude.toFixed(1)}`;
+                p.labelElement.innerText = `${p.code}-${p.altitude.toFixed(1)}`;
 
-            let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
+                let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
 
-            if (p.state === "FLYING_TO_HOLD") {
-                let rad = (p.heading - 90) * (Math.PI / 180);
-                p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
-                p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
+                if (p.state === "FLYING_TO_HOLD") {
+                    let rad = (p.heading - 90) * (Math.PI / 180);
+                    p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
+                    p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
 
-                let triggerReached = false;
-                if (p.triggerType === "Y" && p.y <= p.triggerVal) triggerReached = true;
-                if (p.triggerType === "X" && p.x <= p.triggerVal) triggerReached = true;
+                    let triggerReached = false;
+                    if (p.triggerType === "Y" && p.y <= p.triggerVal) triggerReached = true;
+                    if (p.triggerType === "X" && p.x <= p.triggerVal) triggerReached = true;
 
-                if (triggerReached) {
-                    p.state = "HOLDING";
-                    p.holdingAngle = Math.atan2(p.y - p.holdingCenterY, p.x - p.holdingCenterX);
-                }
-            } 
-            else if (p.state === "HOLDING") {
-                let angularSpeed = speedPxPerSec / p.holdingRadius; 
-                p.holdingAngle += angularSpeed * deltaTime;
-
-                p.x = p.holdingCenterX + p.holdingRadius * Math.cos(p.holdingAngle);
-                p.y = p.holdingCenterY + p.holdingRadius * Math.sin(p.holdingAngle);
-
-                p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
-            }
-            else if (p.state === "TURNING" || p.state === "FLYING_HEADING" || p.state === "ILS_LOCKED" || p.state === "OVERSHOOT") {
-                let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
-                
-                if (Math.abs(diff) > 0.5 && p.state !== "LANDING") {
-                    let baseTurnRate = 5;
-                    if (p.type === "HEAVY") baseTurnRate = 2.5;
-                    else if (p.type === "MEDIUM") baseTurnRate = 3.5;
-                    else if (p.type === "LIGHT") baseTurnRate = 4.5;
-
-                    let turnRate = baseTurnRate * deltaTime; 
-                    
-                    if (Math.abs(diff) <= turnRate) {
-                        p.heading = p.targetHeading;
-                        if (p.state === "TURNING") p.state = "FLYING_HEADING";
-                    } else {
-                        if (p.turnDirection === 'L') {
-                            p.heading -= turnRate; 
-                        } else if (p.heading === undefined) {
-                            p.heading += 0;
-                        } else {
-                            if (diff > 0) p.heading += turnRate;
-                            else p.heading -= turnRate;
-                        }
+                    if (triggerReached) {
+                        p.state = "HOLDING";
+                        p.holdingAngle = Math.atan2(p.y - p.holdingCenterY, p.x - p.holdingCenterX);
                     }
+                } 
+                else if (p.state === "HOLDING") {
+                    let angularSpeed = speedPxPerSec / p.holdingRadius; 
+                    p.holdingAngle += angularSpeed * deltaTime;
+
+                    p.x = p.holdingCenterX + p.holdingRadius * Math.cos(p.holdingAngle);
+                    p.y = p.holdingCenterY + p.holdingRadius * Math.sin(p.holdingAngle);
+
+                    p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
+                }
+                else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+                    let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
                     
-                    p.heading = (p.heading + 360) % 360;
-                } else if (p.state !== "LANDING" && p.state !== "ILS_LOCKED") {
-                    p.heading = p.targetHeading;
-                    if (p.state === "TURNING") p.state = "FLYING_HEADING";
+                    if (Math.abs(diff) > 0.5) {
+                        let baseTurnRate = 5;
+                        if (p.type === "HEAVY") baseTurnRate = 2.5;
+                        else if (p.type === "MEDIUM") baseTurnRate = 3.5;
+                        else if (p.type === "LIGHT") baseTurnRate = 4.5;
+
+                        let turnRate = baseTurnRate * deltaTime; 
+                        
+                        if (Math.abs(diff) <= turnRate) {
+                            p.heading = p.targetHeading;
+                            p.state = "FLYING_HEADING";
+                        } else {
+                            if (p.turnDirection === 'L') {
+                                p.heading -= turnRate; 
+                            } else if (p.turnDirection === 'R') {
+                                p.heading += turnRate; 
+                            } else {
+                                if (diff > 0) p.heading += turnRate;
+                                else p.heading -= turnRate;
+                            }
+                        }
+                        
+                        p.heading = (p.heading + 360) % 360;
+                    } else {
+                        p.heading = p.targetHeading;
+                        p.state = "FLYING_HEADING";
+                    }
+
+                    let rad = (p.heading - 90) * (Math.PI / 180);
+                    p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
+                    p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
                 }
 
-                let rad = (p.heading - 90) * (Math.PI / 180);
-                p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
-                p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
-            }
+                p.element.style.left = p.x + 'px';
+                p.element.style.top = p.y + 'px';
+                p.element.style.transform = `translate(-50%, -50%) rotate(${p.heading}deg)`;
 
-            p.element.style.left = p.x + 'px';
-            p.element.style.top = p.y + 'px';
-            p.element.style.transform = `translate(-50%, -50%) rotate(${p.heading}deg)`;
+                p.labelElement.style.left = p.x + 'px';
+                p.labelElement.style.top = p.y + 'px';
 
-            p.labelElement.style.left = p.x + 'px';
-            p.labelElement.style.top = p.y + 'px';
+                let trailSpacing = 1; 
+                let lastPoint = p.trailPoints[p.trailPoints.length - 1];
+                let distanceSinceLast = lastPoint ? Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y) : trailSpacing + 1;
 
-            let trailSpacing = 1; 
-            let lastPoint = p.trailPoints[p.trailPoints.length - 1];
-            let distanceSinceLast = lastPoint ? Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y) : trailSpacing + 1;
-
-            if (distanceSinceLast >= trailSpacing && p.state !== "LANDING") {
-                p.trailPoints.push({ x: p.x, y: p.y });
-                if (p.trailPoints.length > 70) {
-                    p.trailPoints.shift(); 
+                if (distanceSinceLast >= trailSpacing) {
+                    p.trailPoints.push({ x: p.x, y: p.y });
+                    if (p.trailPoints.length > 70) {
+                        p.trailPoints.shift(); 
+                    }
                 }
-            }
-        });
+            });
 
-        if (selectedPlane) {
-            updateCoordsDisplay();
+            if (selectedPlane) {
+                updateCoordsDisplay();
+            }
+
+            renderAllTrailsCanvas();
         }
 
-        // Update realtime de RMA lampjes op de strips tijdens het vliegen
-        updateFlightProgressStrips();
-
-        renderAllTrails();
-        requestAnimationFrame(updateGame);
+        requestAnimationFrame(gameLoop);
     }
 
-    let trailContainer = document.getElementById('trail-container');
-    function renderAllTrails() {
-        trailContainer.innerHTML = '';
+    function renderAllTrailsCanvas() {
+        ctx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
         planes.forEach(p => {
-            if (p.state === "LANDED") return;
+            let totalPts = p.trailPoints.length;
             p.trailPoints.forEach((pt, index) => {
-                let dot = document.createElement('div');
-                dot.className = 'trail-dot';
-                dot.style.left = pt.x + 'px';
-                dot.style.top = pt.y + 'px';
-                let opacity = (index + 1) / p.trailPoints.length;
-                dot.style.opacity = opacity * 0.7;
-                trailContainer.appendChild(dot);
+                let opacity = ((index + 1) / totalPts) * 0.7;
+                ctx.fillStyle = `rgba(0, 0, 255, ${opacity})`;
+                ctx.fillRect(pt.x - 1.5, pt.y - 1.5, 3, 3);
             });
         });
     }
@@ -1112,7 +987,7 @@
         updateCounter();
         setInterval(updateCounter, 1000);
         spawnNewPlane(); 
-        requestAnimationFrame(updateGame);
+        requestAnimationFrame(gameLoop);
     };
 </script>
 
