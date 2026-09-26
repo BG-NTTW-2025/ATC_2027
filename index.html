@@ -72,7 +72,7 @@
             height: auto;
             transform: translate(-50%, -50%);
             z-index: 5;
-            will-change: transform, left, top; /* GPU Optimalisatie */
+            will-change: transform, left, top;
         }
 
         .dynamic-label {
@@ -89,7 +89,15 @@
             transform: translate(18px, -18px); 
             z-index: 100;
             pointer-events: auto;
-            will-change: left, top; /* GPU Optimalisatie */
+            will-change: left, top;
+        }
+
+        .control-btn {
+            cursor: pointer;
+            transition: opacity 0.05s ease;
+        }
+        .control-btn.is-pressed {
+            opacity: 0.3;
         }
 
         .strip-container {
@@ -156,29 +164,29 @@
             z-index: 15;
         }
 
-        #btn-heading { position: absolute; left: 1201px; top: 494px; cursor: pointer; }
-        #btn-left { position: absolute; left: 1181px; top: 550px; cursor: pointer; }
-        #btn-est { position: absolute; left: 1231px; top: 550px; cursor: pointer; }
-        #btn-right { position: absolute; left: 1331px; top: 550px; cursor: pointer; }
-        #btn-null { position: absolute; left: 1231px; top: 600px; cursor: pointer; }
-        #btn-one { position: absolute; left: 1281px; top: 600px; cursor: pointer; }
+        #btn-heading { position: absolute; left: 1201px; top: 494px; }
+        #btn-left { position: absolute; left: 1181px; top: 550px; }
+        #btn-est { position: absolute; left: 1231px; top: 550px; }
+        #btn-right { position: absolute; left: 1331px; top: 550px; }
+        #btn-null { position: absolute; left: 1231px; top: 600px; }
+        #btn-one { position: absolute; left: 1281px; top: 600px; }
 		
-        #btn-two { position: absolute; left: 1181px; top: 650px; cursor: pointer; }
-        #btn-three { position: absolute; left: 1231px; top: 650px; cursor: pointer; }
-        #btn-four { position: absolute; left: 1281px; top: 650px; cursor: pointer; }
-        #btn-five { position: absolute; left: 1331px; top: 650px; cursor: pointer; }
+        #btn-two { position: absolute; left: 1181px; top: 650px; }
+        #btn-three { position: absolute; left: 1231px; top: 650px; }
+        #btn-four { position: absolute; left: 1281px; top: 650px; }
+        #btn-five { position: absolute; left: 1331px; top: 650px; }
 		
-        #btn-six { position: absolute; left: 1181px; top: 700px; cursor: pointer; }
-        #btn-seven { position: absolute; left: 1231px; top: 700px; cursor: pointer; }
-        #btn-eight { position: absolute; left: 1281px; top: 700px; cursor: pointer; }
-        #btn-nine { position: absolute; left: 1331px; top: 700px; cursor: pointer; }
+        #btn-six { position: absolute; left: 1181px; top: 700px; }
+        #btn-seven { position: absolute; left: 1231px; top: 700px; }
+        #btn-eight { position: absolute; left: 1281px; top: 700px; }
+        #btn-nine { position: absolute; left: 1331px; top: 700px; }
 		
-        #btn-altitude { position: absolute; left: 1173px; top: 763px; cursor: pointer; }
-        #btn-altitude_down { position: absolute; left: 1174px; top: 800px; cursor: pointer; }
-        #btn-altitude_up { position: absolute; left: 1227px; top: 800px; cursor: pointer; }
-        #btn-speed { position: absolute; left: 1284px; top: 763px; cursor: pointer; }
-        #btn-speed_down { position: absolute; left: 1284px; top: 800px; cursor: pointer; }
-        #btn-speed_up { position: absolute; left: 1337px; top: 800px; cursor: pointer; }
+        #btn-altitude { position: absolute; left: 1173px; top: 763px; }
+        #btn-altitude_down { position: absolute; left: 1174px; top: 800px; }
+        #btn-altitude_up { position: absolute; left: 1227px; top: 800px; }
+        #btn-speed { position: absolute; left: 1284px; top: 763px; }
+        #btn-speed_down { position: absolute; left: 1284px; top: 800px; }
+        #btn-speed_up { position: absolute; left: 1337px; top: 800px; }
 				
         #comm-control-group {
             position: absolute;
@@ -187,8 +195,8 @@
             z-index: 15;
         }
 
-        #btn-send { position: absolute; left: 10px; top: 79px; cursor: pointer; }
-        #btn-clear { position: absolute; left: 10px; top: 25px; cursor: pointer; }
+        #btn-send { position: absolute; left: 10px; top: 79px; }
+        #btn-clear { position: absolute; left: 10px; top: 25px; }
 
         #speed-control-ui {
             position: absolute;
@@ -328,31 +336,31 @@
         </div>
 
         <div id="heading-control-group">
-            <img src="graphics/But_Heading_Up.png" alt="Heading Knop" id="btn-heading">
-            <img src="graphics/But_L_Up.png" alt="Left Knop" id="btn-left">
-            <img src="graphics/But_Est_Up.png" alt="Est Knop" id="btn-est">
-            <img src="graphics/But_R_Up.png" alt="Right Knop" id="btn-right">
-            <img src="graphics/But_0_Up.png" alt="Null Knop" id="btn-null">
-            <img src="graphics/But_1_Up.png" alt="One Knop" id="btn-one">
-            <img src="graphics/But_2_Up.png" alt="Two Knop" id="btn-two">
-            <img src="graphics/But_3_Up.png" alt="Three Knop" id="btn-three">
-            <img src="graphics/But_4_Up.png" alt="Four Knop" id="btn-four">
-            <img src="graphics/But_5_Up.png" alt="Five Knop" id="btn-five">
-            <img src="graphics/But_6_Up.png" alt="Six Knop" id="btn-six">
-            <img src="graphics/But_7_Up.png" alt="Seven Knop" id="btn-seven">
-            <img src="graphics/But_8_Up.png" alt="Eight Knop" id="btn-eight">
-            <img src="graphics/But_9_Up.png" alt="Nine Knop" id="btn-nine">
-            <img src="graphics/But_Altitude_Up.png" alt="Altitude Knop" id="btn-altitude">
-            <img src="graphics/But_down_Up.png" alt="Altitude Down Knop" id="btn-altitude_down">
-            <img src="graphics/But_up_Up.png" alt="Altitude Up Knop" id="btn-altitude_up">
-            <img src="graphics/But_Speed_Up.png" alt="Speed Knop" id="btn-speed">
-            <img src="graphics/But_down_Up.png" alt="Speed Down Knop" id="btn-speed_down">
-            <img src="graphics/But_up_Up.png" alt="Speed Up Knop" id="btn-speed_up">
+            <img src="graphics/But_Heading_Up.png" alt="Heading Knop" id="btn-heading" class="control-btn">
+            <img src="graphics/But_L_Up.png" alt="Left Knop" id="btn-left" class="control-btn">
+            <img src="graphics/But_Est_Up.png" alt="Est Knop" id="btn-est" class="control-btn">
+            <img src="graphics/But_R_Up.png" alt="Right Knop" id="btn-right" class="control-btn">
+            <img src="graphics/But_0_Up.png" alt="Null Knop" id="btn-null" class="control-btn">
+            <img src="graphics/But_1_Up.png" alt="One Knop" id="btn-one" class="control-btn">
+            <img src="graphics/But_2_Up.png" alt="Two Knop" id="btn-two" class="control-btn">
+            <img src="graphics/But_3_Up.png" alt="Three Knop" id="btn-three" class="control-btn">
+            <img src="graphics/But_4_Up.png" alt="Four Knop" id="btn-four" class="control-btn">
+            <img src="graphics/But_5_Up.png" alt="Five Knop" id="btn-five" class="control-btn">
+            <img src="graphics/But_6_Up.png" alt="Six Knop" id="btn-six" class="control-btn">
+            <img src="graphics/But_7_Up.png" alt="Seven Knop" id="btn-seven" class="control-btn">
+            <img src="graphics/But_8_Up.png" alt="Eight Knop" id="btn-eight" class="control-btn">
+            <img src="graphics/But_9_Up.png" alt="Nine Knop" id="btn-nine" class="control-btn">
+            <img src="graphics/But_Altitude_Up.png" alt="Altitude Knop" id="btn-altitude" class="control-btn">
+            <img src="graphics/But_down_Up.png" alt="Altitude Down Knop" id="btn-altitude_down" class="control-btn">
+            <img src="graphics/But_up_Up.png" alt="Altitude Up Knop" id="btn-altitude_up" class="control-btn">
+            <img src="graphics/But_Speed_Up.png" alt="Speed Knop" id="btn-speed" class="control-btn">
+            <img src="graphics/But_down_Up.png" alt="Speed Down Knop" id="btn-speed_down" class="control-btn">
+            <img src="graphics/But_up_Up.png" alt="Speed Up Knop" id="btn-speed_up" class="control-btn">
         </div>
             
         <div id="comm-control-group">
-            <img src="graphics/But_Clear_Up.png" alt="Clear Knop" id="btn-clear">
-            <img src="graphics/But_Send_Up.png" alt="Send Knop" id="btn-send">
+            <img src="graphics/But_Clear_Up.png" alt="Clear Knop" id="btn-clear" class="control-btn">
+            <img src="graphics/But_Send_Up.png" alt="Send Knop" id="btn-send" class="control-btn">
         </div>
 
         <img src="graphics/Schaalstok.png" alt="Scale Stick" id="scale-stick">
@@ -364,6 +372,14 @@
         pixelsPerKm: 4.4,
         kmPerNM: 1.852,
         gameSpeed: 1
+    };
+
+    // Definitie van de RMA-zone op basis van de kaartcoördinaten (paarse rechthoek op de afbeelding)
+    const RMA_ZONE = {
+        minX: 556,
+        maxX: 888,
+        minY: 539,
+        maxY: 787
     };
 
     function knotsToPixelsPerSecond(knots) {
@@ -757,36 +773,15 @@
         seconds += SIMULATION.gameSpeed;
     }
 
-    const setupButton = (id, upImg, doImg) => {
-        const btn = document.getElementById(id);
-        if(!btn) return;
-        btn.addEventListener('mousedown', () => btn.src = `graphics/${doImg}`);
-        btn.addEventListener('mouseup', () => btn.src = `graphics/${upImg}`);
-        btn.addEventListener('mouseleave', () => btn.src = `graphics/${upImg}`);
-    };
-
-    setupButton('btn-heading', 'But_Heading_Up.png', 'But_Heading_Do.png');
-    setupButton('btn-left', 'But_L_Up.png', 'But_L_Do.png');
-    setupButton('btn-est', 'But_Est_Up.png', 'But_Est_Do.png');
-    setupButton('btn-right', 'But_R_Up.png', 'But_R_Do.png');
-    setupButton('btn-null', 'But_0_Up.png', 'But_0_Do.png');
-    setupButton('btn-one', 'But_1_Up.png', 'But_1_Do.png');
-    setupButton('btn-two', 'But_2_Up.png', 'But_2_Do.png');
-    setupButton('btn-three', 'But_3_Up.png', 'But_3_Do.png');
-    setupButton('btn-four', 'But_4_Up.png', 'But_4_Do.png');
-    setupButton('btn-five', 'But_5_Up.png', 'But_5_Do.png');
-    setupButton('btn-six', 'But_6_Up.png', 'But_6_Do.png');
-    setupButton('btn-seven', 'But_7_Up.png', 'But_7_Do.png');
-    setupButton('btn-eight', 'But_8_Up.png', 'But_8_Do.png');
-    setupButton('btn-nine', 'But_9_Up.png', 'But_9_Do.png');
-    setupButton('btn-altitude', 'But_Altitude_Up.png', 'But_Altitude_Do.png');
-    setupButton('btn-altitude_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-altitude_up', 'But_up_Up.png', 'But_up_Up.png');
-    setupButton('btn-speed', 'But_speed_Up.png', 'But_speed_Do.png');
-    setupButton('btn-speed_down', 'But_down_Up.png', 'But_down_Do.png');
-    setupButton('btn-speed_up', 'But_up_Up.png', 'But_up_Up.png');
-	setupButton('btn-send', 'But_Send_Up.png', 'But_Send_Do.png');
-	setupButton('btn-clear', 'But_Clear_Up.png', 'But_Clear_Do.png');
+    document.querySelectorAll('.control-btn').forEach(btn => {
+        btn.addEventListener('mousedown', () => {
+            btn.classList.add('is-pressed');
+            if (btn.pressTimer) clearTimeout(btn.pressTimer);
+            btn.pressTimer = setTimeout(() => {
+                btn.classList.remove('is-pressed');
+            }, 150);
+        });
+    });
 
     function updateFlightProgressStrips() {
         const sectors = [
@@ -815,8 +810,9 @@
                     strip.style.color = '#ffffff';
                 }
 
-                let isRmaGreen = (p.x > 400 && p.x < 1000); 
-                let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
+                // Controleer of het vliegtuig binnen de RMA-zone valt
+                let isInRMA = (p.x >= RMA_ZONE.minX && p.x <= RMA_ZONE.maxX && p.y >= RMA_ZONE.minY && p.y <= RMA_ZONE.maxY);
+                let lampClass = isInRMA ? 'lamp-green' : 'lamp-red';
 
                 let hdText = "H";
                 if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
@@ -843,8 +839,7 @@
     const trailCanvas = document.getElementById('trail-canvas');
     const ctx = trailCanvas.getContext('2d');
 
-    // BEPERKTE SIMULATIE LUS (Gecontroleerd op ~30 updates per seconde i.p.v. ongelimiteerd)
-    const UPDATE_INTERVAL = 1000 / 30; // ca. 33 milliseconde per update-stap
+    const UPDATE_INTERVAL = 1000 / 30; // 30 updates per seconde
     let accumulatedTime = 0;
 
     function gameLoop(timestamp) {
@@ -853,10 +848,9 @@
 
         accumulatedTime += realDeltaTime * 1000;
 
-        // Als er genoeg tijd verstreken is, voeren we een simulatie-stap uit
         if (accumulatedTime >= UPDATE_INTERVAL) {
             let deltaTime = (accumulatedTime / 1000) * SIMULATION.gameSpeed;
-            accumulatedTime = 0; // reset
+            accumulatedTime = 0;
 
             timeSinceLastSpawn += deltaTime;
             if (timeSinceLastSpawn >= nextSpawnInterval) {
@@ -966,6 +960,8 @@
             }
 
             renderAllTrailsCanvas();
+            // Werk de strips bij zodat de lampjes direct live meeschakelen
+            updateFlightProgressStrips();
         }
 
         requestAnimationFrame(gameLoop);
