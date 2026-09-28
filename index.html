@@ -144,7 +144,7 @@
         }
 
         .strip-col-aca { width: 65px; padding-left: 4px; overflow: hidden; white-space: nowrap; }
-        .strip-col-hd  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; font-size: 14px; }
+        .strip-col-hd  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
         .strip-col-sp  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
         .strip-col-rma { width: 30px; display: flex; justify-content: center; align-items: center; }
 
@@ -288,7 +288,7 @@
 
         #scale-stick {
             position: absolute;
-            left: 550px; 
+            left: 650px; 
             top: 270px; 
             transform: translate(-50%, -50%);
             z-index: 2;
@@ -384,7 +384,7 @@
     const CENTER_LINE = {
         minX: 721,
         maxX: 722,
-        minY: 623,
+        minY: 499,
         maxY: 788
     };
 
@@ -473,7 +473,7 @@
     };
 
     function spawnNewPlane() {
-        let totalActivePlanes = planes.filter(p => p.state !== "LANDED" && p.state !== "REMOVED" && p.state !== "OVERSHOOT").length;
+        let totalActivePlanes = planes.filter(p => p.state !== "LANDED").length;
         if (totalActivePlanes >= 24) return; 
 
         let totalInHolding = planes.filter(p => p.state === "HOLDING" || p.state === "FLYING_TO_HOLD").length;
@@ -557,8 +557,7 @@
             trailPoints: [],
             element: planeImg,
             labelElement: labelDiv,
-            stripElement: null,
-            landedTimer: 0
+            stripElement: null
         };
 
         labelDiv.addEventListener('click', (e) => {
@@ -801,19 +800,6 @@
         });
     });
 
-    function getHdText(p) {
-        if (p.state === "LOCALISER") return "loc";
-        if (p.state === "ESTABLISHED") return "EST";
-        if (p.state === "FINAL_APPROACH") return "FinAppr";
-        if (p.state === "OVERSHOOT") return "O/S";
-        if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
-            let t = Math.round(p.heading).toString();
-            if (p.isEstablished) t += "e";
-            return t;
-        }
-        return "H";
-    }
-
     function updateFlightProgressStrips() {
         const sectors = [
             { id: 'strips-sea', center: { x: 415, y: 290 } },
@@ -829,7 +815,7 @@
             let activePlanes = planes.filter(p => 
                 Math.abs(p.holdingCenterX - sector.center.x) < 5 && 
                 Math.abs(p.holdingCenterY - sector.center.y) < 5 &&
-                p.state !== "LANDED" && p.state !== "REMOVED" && p.state !== "OVERSHOOT"
+                p.state !== "LANDED"
             );
 
             activePlanes.forEach((p, index) => {
@@ -843,7 +829,14 @@
 
                 let isRmaGreen = (p.x >= RMA_ZONE.minX && p.x <= RMA_ZONE.maxX && p.y >= RMA_ZONE.minY && p.y <= RMA_ZONE.maxY);
                 let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
-                let hdText = getHdText(p);
+
+                let hdText = "H";
+                if (p.state === "LOCALISER") {
+                    hdText = "loc";
+                } else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+                    hdText = Math.round(p.heading);
+                    if (p.isEstablished) hdText += "e";
+                }
 
                 strip.innerHTML = `
                     <div class="strip-col-aca">${p.code}-${p.type[0].toLowerCase()}-${p.altitude.toFixed(0)}</div>
@@ -864,7 +857,7 @@
 
     function updateLiveStripsAndLamps() {
         planes.forEach(p => {
-            if (!p.stripElement || p.state === "LANDED" || p.state === "REMOVED" || p.state === "OVERSHOOT") return;
+            if (!p.stripElement || p.state === "LANDED") return;
             
             let isRmaGreen = (p.x >= RMA_ZONE.minX && p.x <= RMA_ZONE.maxX && p.y >= RMA_ZONE.minY && p.y <= RMA_ZONE.maxY);
             let lampDiv = p.stripElement.querySelector('.rma-lamp');
@@ -877,7 +870,13 @@
 
             let hdSpan = p.stripElement.querySelector('.strip-col-hd');
             if (hdSpan) {
-                let hdText = getHdText(p);
+                let hdText = "H";
+                if (p.state === "LOCALISER") {
+                    hdText = "loc";
+                } else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
+                    hdText = Math.round(p.heading);
+                    if (p.isEstablished) hdText += "e";
+                }
                 if (hdSpan.innerText !== hdText) {
                     hdSpan.innerText = hdText;
                 }
@@ -909,20 +908,6 @@
             }
 
             planes.forEach(p => {
-                if (p.state === "LANDED" || p.state === "REMOVED" || p.state === "OVERSHOOT") {
-                    if (p.state === "LANDED") {
-                        p.landedTimer += deltaTime;
-                        if (p.landedTimer > 2.0) { // Na 2 seconden stilstaan verdwijnt vliegtuig én trail
-                            if (p.element) p.element.remove();
-                            if (p.labelElement) p.labelElement.remove();
-                            if (p.stripElement) p.stripElement.remove();
-                            p.trailPoints = []; // Wis alle trail punten
-                            p.state = "REMOVED";
-                        }
-                    }
-                    return;
-                }
-
                 if (p.currentSpeed < p.targetSpeed) {
                     p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
                 } else if (p.currentSpeed > p.targetSpeed) {
@@ -930,17 +915,16 @@
                 }
 
                 let currentAltFt = p.altitude * 1000;
-                if (p.state !== "LOCALISER" && p.state !== "ESTABLISHED" && p.state !== "FINAL_APPROACH") {
-                    if (currentAltFt < p.targetAltitude) {
-                        p.altitude = Math.min(p.targetAltitude / 1000, p.altitude + 0.2 * deltaTime);
-                    } else if (currentAltFt > p.targetAltitude) {
-                        p.altitude = Math.max(p.targetAltitude / 1000, p.altitude - 0.2 * deltaTime);
-                    }
+                if (currentAltFt < p.targetAltitude) {
+                    p.altitude = Math.min(p.targetAltitude / 1000, p.altitude + 0.2 * deltaTime);
+                } else if (currentAltFt > p.targetAltitude) {
+                    p.altitude = Math.max(p.targetAltitude / 1000, p.altitude - 0.2 * deltaTime);
                 }
 
                 p.labelElement.innerText = `${p.code}-${p.altitude.toFixed(1)}`;
 
                 let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
+
                 let prevX = p.x;
 
                 if (p.state === "FLYING_TO_HOLD") {
@@ -966,97 +950,46 @@
 
                     p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
                 }
-                else if (p.state === "LOCALISER" || p.state === "ESTABLISHED" || p.state === "FINAL_APPROACH") {
-                    // Automatisch remmen naar 160 knots tijdens de nadering
-                    p.targetSpeed = 160;
+                else if (p.state === "LOCALISER") {
+                    // --- VLOEIENDE INTERCEPTIE & CORRECTIE RICHTING CENTERLINE ---
+                    let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
+                    let diffX = targetXCenter - p.x; 
+                    
+                    let interceptOffset = diffX * 0.2; 
+                    interceptOffset = Math.max(-15, Math.min(15, interceptOffset)); 
+                    
+                    p.targetHeading = (0 + interceptOffset + 360) % 360;
 
-                    let distPixels = p.y - RUNWAY.y;
-                    let distNM = distPixels / PIXELS_PER_NM;
+                    let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
+                    if (Math.abs(diff) > 0.5) {
+                        let baseTurnRate = 5;
+                        if (p.type === "HEAVY") baseTurnRate = 2.5;
+                        else if (p.type === "MEDIUM") baseTurnRate = 3.5;
+                        else if (p.type === "LIGHT") baseTurnRate = 4.5;
 
-                    // --- ZODRA LOC IN PLACE IS: DAAL AUTOMATISCH NAAR 2000 FEET ---
-                    if (p.state === "LOCALISER") {
-                        p.targetAltitude = 2000;
-                        if (currentAltFt > 2000) {
-                            p.altitude = Math.max(2.0, p.altitude - 0.3 * deltaTime);
-                        } else if (currentAltFt < 2000) {
-                            p.altitude = Math.min(2.0, p.altitude + 0.3 * deltaTime);
-                        }
-
-                        // Check of vliegtuig bij de laatste 10 mijl aankomt
-                        if (distNM <= 10 && distNM > 0) {
-                            let gsAltitudeFt = distNM * 300; // Glijpad conditie (300 ft per NM)
-                            if (p.altitude * 1000 <= gsAltitudeFt + 300) {
-                                p.state = "ESTABLISHED";
-                            } else {
-                                // Niet voldaan aan glijpad op 10 mijl -> Doorstart!
-                                p.state = "OVERSHOOT";
-                                p.targetHeading = 80;
-                                p.targetAltitude = 3000;
-                                document.getElementById('comm-alerts').innerText = `- Overshoot (${p.code} te hoog bij 10nm)`;
-                            }
-                        }
-                    }
-                    // --- ESTABLISHED OP 10 MIJL ---
-                    else if (p.state === "ESTABLISHED") {
-                        // Check of vliegtuig op 7 mijl aankomt
-                        if (distNM <= 7) {
-                            let gsAltitudeFt = distNM * 300;
-                            if (p.altitude * 1000 <= gsAltitudeFt + 300) {
-                                p.state = "FINAL_APPROACH";
-                            } else {
-                                p.state = "OVERSHOOT";
-                                p.targetHeading = 80;
-                                p.targetAltitude = 3000;
-                                document.getElementById('comm-alerts').innerText = `- Overshoot (${p.code} te hoog bij 7nm)`;
-                            }
-                        }
-                    }
-
-                    // --- HOOGTE & GLIJPAD BEREKENING VOOR EST / FinAppr ---
-                    if (p.state === "ESTABLISHED" || p.state === "FINAL_APPROACH") {
-                        let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                        p.x = targetXCenter;
-                        p.heading = 0;
-
-                        // Geleidelijk zakken tot 300 voet tot aan begin van de baan, daarna snel naar 0 voet
-                        let targetAltFt;
-                        if (distNM > 1.0) {
-                            targetAltFt = distNM * 300;
-                        } else if (distNM > 0.2) {
-                            targetAltFt = 300;
-                        } else {
-                            targetAltFt = 0; // Snelle daling naar 0 voet voor de baan
-                        }
-                        p.altitude = Math.max(0.0, targetAltFt / 1000);
-
-                        // Check landing bij drempel
-                        if (p.y <= RUNWAY.y) {
-                            p.state = "LANDED";
-                            p.targetSpeed = 10; // Snel afremmen op de baan
-                            if (p.stripElement) p.stripElement.remove();
-                            document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} (${p.type}) geland!`;
-                            updateFlightProgressStrips();
-                        }
-                    } else {
-                        // Vloeiende correctie zolang het nog 'loc' is
-                        let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                        let diffX = targetXCenter - p.x;
-                        let interceptOffset = Math.max(-15, Math.min(15, diffX * 0.2));
-                        p.targetHeading = (360 + interceptOffset) % 360;
-
-                        let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
-                        if (Math.abs(diff) > 0.5) {
-                            let turnRate = 4 * deltaTime;
-                            if (Math.abs(diff) <= turnRate) p.heading = p.targetHeading;
-                            else p.heading += (diff > 0 ? turnRate : -turnRate);
-                            p.heading = (p.heading + 360) % 360;
-                        } else {
+                        let turnRate = baseTurnRate * deltaTime; 
+                        if (Math.abs(diff) <= turnRate) {
                             p.heading = p.targetHeading;
+                        } else {
+                            if (diff > 0) p.heading += turnRate;
+                            else p.heading -= turnRate;
                         }
+                        p.heading = (p.heading + 360) % 360;
+                    } else {
+                        p.heading = p.targetHeading;
                     }
 
                     let rad = (p.heading - 90) * (Math.PI / 180);
+                    p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
                     p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
+
+                    // --- ILS GLIDESLOPE SCHEMA LOGICA (100 FT PER PIXEL / 300 FT PER MILE) ---
+                    let schemaAlt = 50 + (p.y - 721) * 100;
+                    if (currentAltFt > schemaAlt) {
+                        p.targetAltitude = schemaAlt;
+                    } else {
+                        p.targetAltitude = currentAltFt;
+                    }
                 }
                 else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                     let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
@@ -1093,58 +1026,28 @@
                     p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
                     p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
                 }
-                else if (p.state === "OVERSHOOT") {
-                    let diff = (80 - p.heading + 540) % 360 - 180;
-                    if (Math.abs(diff) > 0.5) {
-                        p.heading += (diff > 0 ? 3 : -3) * deltaTime;
-                        p.heading = (p.heading + 360) % 360;
-                    } else {
-                        p.heading = 80;
-                    }
-
-                    if (p.altitude < 3.0) {
-                        p.altitude = Math.min(3.0, p.altitude + 0.2 * deltaTime);
-                    }
-
-                    let rad = (p.heading - 90) * (Math.PI / 180);
-                    p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
-                    p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
-
-                    if (p.x > 1440 || p.x < 0 || p.y < 0 || p.y > 900) {
-                        p.state = "REMOVED";
-                        p.element.remove();
-                        p.labelElement.remove();
-                        if (p.stripElement) p.stripElement.remove();
-                        p.trailPoints = [];
-                    }
-                }
-
-                if (p.state === "LANDED") {
-                    p.targetSpeed = 0;
-                    let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                    p.x = targetXCenter;
-                    p.heading = 0;
-                    let rad = (p.heading - 90) * (Math.PI / 180);
-                    p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
-                    p.altitude = 0.0;
-                }
 
                 // --- KRUISINGSDETECTIE LOCALISER ---
-                if (p.isEstablished && p.state !== "LOCALISER" && p.state !== "ESTABLISHED" && p.state !== "FINAL_APPROACH") {
-                    if (p.y >= CENTER_LINE.minY && p.y <= CENTER_LINE.maxY) {
-                        let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                        let crossedFromLeft = (prevX < targetXCenter && p.x >= targetXCenter);
-                        let crossedFromRight = (prevX > targetXCenter && p.x <= targetXCenter);
+                if (p.isEstablished && p.state !== "LOCALISER") {
+                    if (p.altitude < 4.5) {
+                        if (p.y >= CENTER_LINE.minY && p.y <= CENTER_LINE.maxY) {
+                            let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
+                            let crossedFromLeft = (prevX < targetXCenter && p.x >= targetXCenter);
+                            let crossedFromRight = (prevX > targetXCenter && p.x <= targetXCenter);
 
-                        if ((crossedFromLeft || crossedFromRight) && p.currentSpeed <= 200) {
-                            let hNorm = (p.heading + 360) % 360;
-                            let validAngle = false;
+                            if ((crossedFromLeft || crossedFromRight) && p.currentSpeed <= 200) {
+                                let hNorm = (p.heading + 360) % 360;
+                                let validAngle = false;
 
-                            if (crossedFromLeft && hNorm >= 0 && hNorm <= 30) validAngle = true;
-                            else if (crossedFromRight && hNorm >= 330 && hNorm <= 360) validAngle = true;
+                                if (crossedFromLeft && hNorm >= 0 && hNorm <= 30) {
+                                    validAngle = true;
+                                } else if (crossedFromRight && hNorm >= 330 && hNorm <= 360) {
+                                    validAngle = true;
+                                }
 
-                            if (validAngle) {
-                                p.state = "LOCALISER";
+                                if (validAngle) {
+                                    p.state = "LOCALISER";
+                                }
                             }
                         }
                     }
@@ -1161,7 +1064,7 @@
                 let lastPoint = p.trailPoints[p.trailPoints.length - 1];
                 let distanceSinceLast = lastPoint ? Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y) : trailSpacing + 1;
 
-                if (distanceSinceLast >= trailSpacing && p.state !== "LANDED" && p.state !== "REMOVED") {
+                if (distanceSinceLast >= trailSpacing) {
                     p.trailPoints.push({ x: p.x, y: p.y });
                     if (p.trailPoints.length > 70) {
                         p.trailPoints.shift(); 
@@ -1183,7 +1086,6 @@
     function renderAllTrailsCanvas() {
         ctx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
         planes.forEach(p => {
-            if (p.state === "LANDED" || p.state === "REMOVED") return;
             let totalPts = p.trailPoints.length;
             p.trailPoints.forEach((pt, index) => {
                 let opacity = ((index + 1) / totalPts) * 0.7;
