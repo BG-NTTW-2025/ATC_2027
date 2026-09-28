@@ -498,7 +498,7 @@
         let pTypeName = typeKeys[Math.floor(Math.random() * typeKeys.length)];
         let pTypeData = AIRCRAFT_TYPES[pTypeName];
 
-        let possibleAltitudes = [7.0, 8.0, 9.0];
+        let possibleAltitudes = [7000, 8000, 9000];
         let planesInThisHolding = planes.filter(p => 
             p.holdingCenterX === t.holdingCenterX && 
             p.holdingCenterY === t.holdingCenterY &&
@@ -521,7 +521,7 @@
         
         let labelDiv = document.createElement('div');
         labelDiv.className = 'dynamic-label';
-        labelDiv.innerText = `${code}-${assignedAltitude.toFixed(1)}`;
+        labelDiv.innerText = `${code}-${(assignedAltitude / 1000).toFixed(1)}`;
 
         document.getElementById('planes-layer').appendChild(planeImg);
         document.getElementById('planes-layer').appendChild(labelDiv);
@@ -533,7 +533,7 @@
             type: pTypeName,
             maxSpeed: pTypeData.maxSpeed,
             altitude: assignedAltitude,            
-            targetAltitude: assignedAltitude * 1000, 
+            targetAltitude: assignedAltitude, 
             currentSpeed: initialKnots,                     
             targetSpeed: initialKnots,                      
             x: t.startX,
@@ -839,7 +839,7 @@
                 }
 
                 strip.innerHTML = `
-                    <div class="strip-col-aca">${p.code}-${p.type[0].toLowerCase()}-${p.altitude.toFixed(0)}</div>
+                    <div class="strip-col-aca">${p.code}-${p.type[0].toLowerCase()}-${(p.altitude / 1000).toFixed(0)}</div>
                     <div class="strip-col-hd">${hdText}</div>
                     <div class="strip-col-sp">${Math.round(p.currentSpeed)}</div>
                     <div class="strip-col-rma"><div class="rma-lamp ${lampClass}"></div></div>
@@ -914,14 +914,13 @@
                     p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 15 * deltaTime);
                 }
 
-                let currentAltFt = p.altitude * 1000;
-                if (currentAltFt < p.targetAltitude) {
-                    p.altitude = Math.min(p.targetAltitude / 1000, p.altitude + 0.2 * deltaTime);
-                } else if (currentAltFt > p.targetAltitude) {
-                    p.altitude = Math.max(p.targetAltitude / 1000, p.altitude - 0.2 * deltaTime);
+                if (p.altitude < p.targetAltitude) {
+                    p.altitude = Math.min(p.targetAltitude, p.altitude + 200 * deltaTime);
+                } else if (p.altitude > p.targetAltitude) {
+                    p.altitude = Math.max(p.targetAltitude, p.altitude - 200 * deltaTime);
                 }
 
-                p.labelElement.innerText = `${p.code}-${p.altitude.toFixed(1)}`;
+                p.labelElement.innerText = `${p.code}-${(p.altitude / 1000).toFixed(1)}`;
 
                 let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
 
@@ -983,12 +982,12 @@
                     p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
                     p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
 
-                    // --- ILS GLIDESLOPE SCHEMA LOGICA (100 FT PER PIXEL / 300 FT PER MILE) ---
+                    // --- ILS GLIDESLOPE SCHEMA LOGICA (100 FT PER PIXEL) ---
                     let schemaAlt = 50 + (p.y - 721) * 100;
-                    if (currentAltFt > schemaAlt) {
+                    if (p.altitude > schemaAlt) {
                         p.targetAltitude = schemaAlt;
                     } else {
-                        p.targetAltitude = currentAltFt;
+                        p.targetAltitude = p.altitude;
                     }
                 }
                 else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
@@ -1029,7 +1028,7 @@
 
                 // --- KRUISINGSDETECTIE LOCALISER ---
                 if (p.isEstablished && p.state !== "LOCALISER") {
-                    if (p.altitude < 4.5) {
+                    if (p.altitude < 4500) {
                         if (p.y >= CENTER_LINE.minY && p.y <= CENTER_LINE.maxY) {
                             let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
                             let crossedFromLeft = (prevX < targetXCenter && p.x >= targetXCenter);
