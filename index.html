@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>ATC Radar Simulator - FPS Boards</title>
+    <title>ATC Radar Simulator - Clean Base</title>
     <style>
         html, body {
             margin: 0;
@@ -144,7 +144,7 @@
         }
 
         .strip-col-aca { width: 65px; padding-left: 4px; overflow: hidden; white-space: nowrap; }
-        .strip-col-hd  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
+        .strip-col-hd  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; font-size: 14px; }
         .strip-col-sp  { width: 50px; text-align: center; overflow: hidden; white-space: nowrap; }
         .strip-col-rma { width: 30px; display: flex; justify-content: center; align-items: center; }
 
@@ -323,12 +323,13 @@
 
         <div id="comm-atc-plane"></div>
         <div id="comm-plane-atc"></div>
-        <div id="comm-alerts">Systeem gestart. Gereed voor vluchtbegeleiding.</div>
+        <div id="comm-alerts">Systeem gestart. Schone basis geladen.</div>
         <div id="plane-coords-display">Plane ID: - x = -, y = -</div>
 
         <div id="speed-control-ui">
             Speed: 
             <span class="speed-btn active" onclick="setGameSpeed(1)">1x</span>
+			<span class="speed-btn" onclick="setGameSpeed(10)">10x</span>
             <span class="speed-btn" onclick="setGameSpeed(20)">20x</span>
             <span class="speed-btn" onclick="setGameSpeed(30)">30x</span>
             <span class="speed-btn" onclick="setGameSpeed(40)">40x</span>
@@ -384,7 +385,7 @@
     const CENTER_LINE = {
         minX: 721,
         maxX: 722,
-        minY: 499,
+        minY: 536,
         maxY: 788
     };
 
@@ -467,13 +468,13 @@
     ];
 
     const AIRCRAFT_TYPES = {
-        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, maxSpeed: 250 },
-        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, maxSpeed: 230 },
-        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, maxSpeed: 220 }
+        HEAVY: { img: 'graphics/plane_1.png', cruiseKnots: 220, maxSpeed: 250, finalKnots: 160, touchDownStopY: 515 },
+        MEDIUM: { img: 'graphics/plane_2.png', cruiseKnots: 210, maxSpeed: 230, finalKnots: 130, touchDownStopY: 520 },
+        LIGHT: { img: 'graphics/plane_3.png', cruiseKnots: 180, maxSpeed: 220, finalKnots: 70, touchDownStopY: 525 }
     };
 
     function spawnNewPlane() {
-        let totalActivePlanes = planes.filter(p => p.state !== "LANDED").length;
+        let totalActivePlanes = planes.filter(p => p.state !== "REMOVED").length;
         if (totalActivePlanes >= 24) return; 
 
         let totalInHolding = planes.filter(p => p.state === "HOLDING" || p.state === "FLYING_TO_HOLD").length;
@@ -532,6 +533,8 @@
             code: code,
             type: pTypeName,
             maxSpeed: pTypeData.maxSpeed,
+            finalKnots: pTypeData.finalKnots,
+            touchDownStopY: pTypeData.touchDownStopY,
             altitude: assignedAltitude,            
             targetAltitude: assignedAltitude, 
             currentSpeed: initialKnots,                     
@@ -615,46 +618,50 @@
             document.getElementById('plane-coords-display').innerText = "Plane ID: - x = -, y = -";
             return;
         }
-        document.getElementById('plane-coords-display').innerText = `Plane ID: ${selectedPlane.code}  x = ${Math.round(selectedPlane.x)}, y = ${Math.round(selectedPlane.y)}`;
+        document.getElementById('plane-coords-display').innerText = `Plane ID: ${selectedPlane.code}  x = ${Math.round(selectedPlane.x)}, y = ${Math.round(selectedPlane.y)} [${selectedPlane.state}]`;
+    }
+
+    function isPlaneLocked(p) {
+        return p.state === "FINAL_APPROACH" || p.state === "TOUCH_DOWN" || p.state === "ROLLOUT" || p.state === "LANDED" || p.state === "REMOVED";
     }
 
     document.getElementById('btn-heading').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = 'HEADING';
         commandDetails = "Say Heading!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-altitude').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = 'ALTITUDE';
         commandDetails = "Say Altitude!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-speed').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = 'SPEED';
         commandDetails = "Say Speed!";
         updateDisplayLines();
     });
 
     document.getElementById('btn-left').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = 'TURN';
         commandDetails = "Change Heading to: Left ";
         updateDisplayLines();
     });
 
     document.getElementById('btn-right').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = 'TURN';
         commandDetails = "Change Heading to: Right ";
         updateDisplayLines();
     });
 
     const appendDigit = (digit) => {
-        if (!selectedPlane || currentCommandType !== 'TURN') return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane) || currentCommandType !== 'TURN') return;
         let parts = commandDetails.split(": ");
         if (parts.length < 2) return;
         let currentVal = parts[1];
@@ -676,7 +683,7 @@
     document.getElementById('btn-nine').addEventListener('click', () => appendDigit('9'));
 
     document.getElementById('btn-est').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         if (currentCommandType === 'TURN' && commandDetails.replace(/[^0-9]/g, "").length > 0) {
             if (!commandDetails.includes("-Establish")) {
                 commandDetails += "-Establish";
@@ -686,7 +693,7 @@
     });
 
     document.getElementById('btn-altitude_up').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         if (currentCommandType !== 'ALT_CHANGE') {
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
@@ -697,7 +704,7 @@
     });
 
     document.getElementById('btn-altitude_down').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         if (currentCommandType !== 'ALT_CHANGE') {
             currentCommandType = 'ALT_CHANGE';
             bufferTargetAltitude = selectedPlane.targetAltitude;
@@ -708,7 +715,7 @@
     });
 
     document.getElementById('btn-speed_up').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         if (currentCommandType !== 'SPD_CHANGE') {
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
@@ -719,7 +726,7 @@
     });
 
     document.getElementById('btn-speed_down').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         if (currentCommandType !== 'SPD_CHANGE') {
             currentCommandType = 'SPD_CHANGE';
             bufferTargetSpeed = selectedPlane.targetSpeed;
@@ -730,7 +737,7 @@
     });
 
     document.getElementById('btn-clear').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         currentCommandType = null;
         commandDetails = "";
         updateDisplayLines();
@@ -738,7 +745,7 @@
     });
 
     document.getElementById('btn-send').addEventListener('click', () => {
-        if (!selectedPlane) return;
+        if (!selectedPlane || isPlaneLocked(selectedPlane)) return;
         let pCode = selectedPlane.code;
         let sentText = commandDetails;
         let replyText = "";
@@ -815,7 +822,7 @@
             let activePlanes = planes.filter(p => 
                 Math.abs(p.holdingCenterX - sector.center.x) < 5 && 
                 Math.abs(p.holdingCenterY - sector.center.y) < 5 &&
-                p.state !== "LANDED"
+                p.state !== "REMOVED"
             );
 
             activePlanes.forEach((p, index) => {
@@ -831,7 +838,15 @@
                 let lampClass = isRmaGreen ? 'lamp-green' : 'lamp-red';
 
                 let hdText = "H";
-                if (p.state === "LOCALISER") {
+                if (p.state === "ROLLOUT" || p.state === "LANDED") {
+                    hdText = "Landed";
+                } else if (p.state === "TOUCH_DOWN") {
+                    hdText = "360";
+                } else if (p.state === "FINAL_APPROACH") {
+                    hdText = "FinApp";
+                } else if (p.state === "ESTABLISHED") {
+                    hdText = "EST";
+                } else if (p.state === "LOCALISER") {
                     hdText = "loc";
                 } else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                     hdText = Math.round(p.heading);
@@ -841,7 +856,7 @@
                 strip.innerHTML = `
                     <div class="strip-col-aca">${p.code}-${p.type[0].toLowerCase()}-${(p.altitude / 1000).toFixed(0)}</div>
                     <div class="strip-col-hd">${hdText}</div>
-                    <div class="strip-col-sp">${Math.round(p.currentSpeed)}</div>
+                    <div class="strip-col-sp">${(p.state === "ROLLOUT" || p.state === "LANDED") ? "" : Math.round(p.currentSpeed)}</div>
                     <div class="strip-col-rma"><div class="rma-lamp ${lampClass}"></div></div>
                 `;
 
@@ -857,7 +872,7 @@
 
     function updateLiveStripsAndLamps() {
         planes.forEach(p => {
-            if (!p.stripElement || p.state === "LANDED") return;
+            if (!p.stripElement || p.state === "REMOVED") return;
             
             let isRmaGreen = (p.x >= RMA_ZONE.minX && p.x <= RMA_ZONE.maxX && p.y >= RMA_ZONE.minY && p.y <= RMA_ZONE.maxY);
             let lampDiv = p.stripElement.querySelector('.rma-lamp');
@@ -871,7 +886,15 @@
             let hdSpan = p.stripElement.querySelector('.strip-col-hd');
             if (hdSpan) {
                 let hdText = "H";
-                if (p.state === "LOCALISER") {
+                if (p.state === "ROLLOUT" || p.state === "LANDED") {
+                    hdText = "Landed";
+                } else if (p.state === "TOUCH_DOWN") {
+                    hdText = "360";
+                } else if (p.state === "FINAL_APPROACH") {
+                    hdText = "FinApp";
+                } else if (p.state === "ESTABLISHED") {
+                    hdText = "EST";
+                } else if (p.state === "LOCALISER") {
                     hdText = "loc";
                 } else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
                     hdText = Math.round(p.heading);
@@ -879,6 +902,14 @@
                 }
                 if (hdSpan.innerText !== hdText) {
                     hdSpan.innerText = hdText;
+                }
+            }
+
+            let spSpan = p.stripElement.querySelector('.strip-col-sp');
+            if (spSpan) {
+                let currentSpText = (p.state === "ROLLOUT" || p.state === "LANDED") ? "" : Math.round(p.currentSpeed).toString();
+                if (spSpan.innerText !== currentSpText) {
+                    spSpan.innerText = currentSpText;
                 }
             }
         });
@@ -907,24 +938,117 @@
                 spawnNewPlane(); 
             }
 
-            planes.forEach(p => {
-                if (p.currentSpeed < p.targetSpeed) {
-                    p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
-                } else if (p.currentSpeed > p.targetSpeed) {
-                    p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 15 * deltaTime);
+            for (let i = planes.length - 1; i >= 0; i--) {
+                let p = planes[i];
+                if (p.state === "REMOVED") continue;
+
+                if (p.state === "LANDED") {
+                    // Telt door tot 5 pixels voorbij touchDownStopY en remt speed af naar 0
+                    let stopYFinal = p.touchDownStopY - 5;
+                    let totalDist = p.rolloutStopY - stopYFinal;
+                    let coveredDist = p.rolloutStopY - p.y;
+
+                    if (totalDist > 0) {
+                        let prog = Math.max(0, Math.min(1, coveredDist / totalDist));
+                        p.currentSpeed = 10 * (1 - prog);
+                    } else {
+                        p.currentSpeed = 0;
+                    }
+
+                    // Verwijder vliegtuig, trail en list zodra speed <= 5 of Y <= stopYFinal bereikt is
+                    if (p.currentSpeed <= 5 || p.y <= stopYFinal) {
+                        p.currentSpeed = 0;
+                        p.state = "REMOVED";
+                        
+                        if (p.element && p.element.parentNode) p.element.parentNode.removeChild(p.element);
+                        if (p.labelElement && p.labelElement.parentNode) p.labelElement.parentNode.removeChild(p.labelElement);
+                        if (selectedPlane === p) {
+                            selectedPlane = null;
+                            updateDisplayLines();
+                            document.getElementById('plane-coords-display').innerText = "Plane ID: - x = -, y = -";
+                        }
+                        updateFlightProgressStrips();
+                        continue;
+                    }
+                } 
+                else if (p.state === "ROLLOUT") {
+                    let distanceTotal = p.touchDownStartY - p.touchDownStopY;
+                    let distanceCovered = p.touchDownStartY - p.y;
+                    
+                    if (distanceTotal > 0) {
+                        let progress = Math.max(0, Math.min(1, distanceCovered / distanceTotal));
+                        p.targetSpeed = p.finalKnots - (p.finalKnots - 10) * progress;
+                    } else {
+                        p.targetSpeed = 10;
+                    }
+
+                    if (p.y <= p.touchDownStopY) {
+                        p.currentSpeed = 10;
+                        p.targetSpeed = 10;
+                        p.state = "LANDED"; 
+                        p.rolloutStopY = p.y; 
+                        updateFlightProgressStrips();
+                    }
+                } 
+                else if (p.state === "TOUCH_DOWN") {
+                    let distanceTotal = p.touchDownStartY - p.touchDownStopY;
+                    let distanceCovered = p.touchDownStartY - p.y;
+                    
+                    if (distanceTotal > 0) {
+                        let progress = Math.max(0, Math.min(1, distanceCovered / distanceTotal));
+                        p.targetSpeed = p.finalKnots - (p.finalKnots - 10) * progress;
+                    } else {
+                        p.targetSpeed = 10;
+                    }
+
+                    if (p.y <= p.touchDownStopY) {
+                        p.currentSpeed = 10;
+                        p.targetSpeed = 10;
+                        p.state = "ROLLOUT"; 
+                        updateFlightProgressStrips();
+                    }
+                } 
+                else if (p.state === "FINAL_APPROACH") {
+                    p.targetSpeed = p.finalKnots;
                 }
 
+                if (p.state !== "TOUCH_DOWN" && p.state !== "ROLLOUT" && p.state !== "LANDED") {
+                    if (p.currentSpeed < p.targetSpeed) {
+                        p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 15 * deltaTime);
+                    } else if (p.currentSpeed > p.targetSpeed) {
+                        p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 25 * deltaTime);
+                    }
+                } else if (p.state === "TOUCH_DOWN" || p.state === "ROLLOUT") {
+                    if (p.currentSpeed > p.targetSpeed) {
+                        p.currentSpeed = Math.max(p.targetSpeed, p.currentSpeed - 25 * deltaTime);
+                    } else if (p.currentSpeed < p.targetSpeed) {
+                        p.currentSpeed = Math.min(p.targetSpeed, p.currentSpeed + 25 * deltaTime);
+                    }
+                }
+
+                // Hoogte update en begrenzing tot 0
                 if (p.altitude < p.targetAltitude) {
                     p.altitude = Math.min(p.targetAltitude, p.altitude + 200 * deltaTime);
                 } else if (p.altitude > p.targetAltitude) {
                     p.altitude = Math.max(p.targetAltitude, p.altitude - 200 * deltaTime);
                 }
 
-                p.labelElement.innerText = `${p.code}-${(p.altitude / 1000).toFixed(1)}`;
+                if (p.altitude <= 0) {
+                    p.altitude = 0;
+                    p.targetAltitude = 0;
+                }
+
+                // Label update: toont normaal de code en altitude (of snelheid tijdens touchdown/landing)
+                if (p.state === "TOUCH_DOWN" || p.state === "ROLLOUT" || p.state === "LANDED") {
+                    p.labelElement.innerText = `${p.code}-${Math.round(p.currentSpeed)}`;
+                } else {
+                    p.labelElement.innerText = `${p.code}-${(p.altitude / 1000).toFixed(1)}`;
+                }
 
                 let speedPxPerSec = knotsToPixelsPerSecond(p.currentSpeed);
 
                 let prevX = p.x;
+                let prevY = p.y;
 
                 if (p.state === "FLYING_TO_HOLD") {
                     let rad = (p.heading - 90) * (Math.PI / 180);
@@ -949,17 +1073,15 @@
 
                     p.heading = (p.holdingAngle * 180 / Math.PI) + 180;
                 }
-                else if (p.state === "LOCALISER") {
-                    // --- VLOEIENDE INTERCEPTIE & CORRECTIE RICHTING CENTERLINE ---
-                    let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                    let diffX = targetXCenter - p.x; 
-                    
-                    let interceptOffset = diffX * 0.2; 
-                    interceptOffset = Math.max(-15, Math.min(15, interceptOffset)); 
-                    
-                    p.targetHeading = (0 + interceptOffset + 360) % 360;
+                else if (p.state === "LOCALISER" || p.state === "ESTABLISHED" || p.state === "FINAL_APPROACH" || p.state === "TOUCH_DOWN" || p.state === "ROLLOUT" || p.state === "LANDED") {
+                    let targetX = 721.5;
+                    let deviation = p.x - targetX; 
+
+                    let correctionHeading = 360 - (deviation * 2.0);
+                    p.targetHeading = (correctionHeading + 360) % 360;
 
                     let diff = (p.targetHeading - p.heading + 540) % 360 - 180;
+                    
                     if (Math.abs(diff) > 0.5) {
                         let baseTurnRate = 5;
                         if (p.type === "HEAVY") baseTurnRate = 2.5;
@@ -967,11 +1089,15 @@
                         else if (p.type === "LIGHT") baseTurnRate = 4.5;
 
                         let turnRate = baseTurnRate * deltaTime; 
+                        
                         if (Math.abs(diff) <= turnRate) {
                             p.heading = p.targetHeading;
                         } else {
-                            if (diff > 0) p.heading += turnRate;
-                            else p.heading -= turnRate;
+                            if (diff > 0) {
+                                p.heading += turnRate;
+                            } else {
+                                p.heading -= turnRate;
+                            }
                         }
                         p.heading = (p.heading + 360) % 360;
                     } else {
@@ -982,12 +1108,42 @@
                     p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
                     p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
 
-                    // --- ILS GLIDESLOPE SCHEMA LOGICA (100 FT PER PIXEL) ---
-                    let schemaAlt = 50 + (p.y - 721) * 100;
-                    if (p.altitude > schemaAlt) {
-                        p.targetAltitude = schemaAlt;
-                    } else {
-                        p.targetAltitude = p.altitude;
+                    // GLIDESLOPE BEREKENING (alleen als nog niet in TOUCH_DOWN, ROLLOUT of LANDED)
+                    if (p.state !== "TOUCH_DOWN" && p.state !== "ROLLOUT" && p.state !== "LANDED") {
+                        let maxAllowedAltitude = (p.y - 536) * ((6850 - 50) / (786 - 536)) + 50;
+
+                        if (p.altitude > maxAllowedAltitude) {
+                            p.targetAltitude -= 100; 
+
+                            if (p.state === "LOCALISER") {
+                                p.state = "ESTABLISHED";
+                                document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} is ESTABLISHED op ILS glidepath.`;
+                                updateFlightProgressStrips();
+                            }
+                        }
+
+                        // Overgang van ESTABLISHED naar FINAL_APPROACH bij Y <= 615
+                        if (p.state === "ESTABLISHED" && p.y <= 615) {
+                            p.state = "FINAL_APPROACH";
+                            document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} zit in FINAL_APPROACH. Geen opdrachten meer mogelijk.`;
+                            
+                            if (selectedPlane === p) {
+                                currentCommandType = null;
+                                commandDetails = "";
+                                updateDisplayLines();
+                            }
+                            updateFlightProgressStrips();
+                        }
+                    }
+
+                    // Overgang naar TOUCH_DOWN zodra altitude 0 of lager is bereikt
+                    if ((p.state === "FINAL_APPROACH" || p.state === "ESTABLISHED") && p.altitude <= 0) {
+                        p.state = "TOUCH_DOWN";
+                        p.targetHeading = 360;
+                        p.heading = 360;
+                        p.touchDownStartY = p.y; 
+                        document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} heeft TOUCH_DOWN bereikt.`;
+                        updateFlightProgressStrips();
                     }
                 }
                 else if (p.state === "TURNING" || p.state === "FLYING_HEADING") {
@@ -1024,30 +1180,22 @@
                     let rad = (p.heading - 90) * (Math.PI / 180);
                     p.x += Math.cos(rad) * speedPxPerSec * deltaTime;
                     p.y += Math.sin(rad) * speedPxPerSec * deltaTime;
-                }
 
-                // --- KRUISINGSDETECTIE LOCALISER ---
-                if (p.isEstablished && p.state !== "LOCALISER") {
-                    if (p.altitude < 4500) {
-                        if (p.y >= CENTER_LINE.minY && p.y <= CENTER_LINE.maxY) {
-                            let targetXCenter = (CENTER_LINE.minX + CENTER_LINE.maxX) / 2;
-                            let crossedFromLeft = (prevX < targetXCenter && p.x >= targetXCenter);
-                            let crossedFromRight = (prevX > targetXCenter && p.x <= targetXCenter);
+                    if (p.isEstablished) {
+                        let crossedEastToWest = (prevX > 721 && p.x <= 722 && p.heading >= 330 && p.heading <= 360);
+                        let crossedWestToEast = (prevX < 722 && p.x >= 721 && p.heading >= 0 && p.heading <= 30);
 
-                            if ((crossedFromLeft || crossedFromRight) && p.currentSpeed <= 200) {
-                                let hNorm = (p.heading + 360) % 360;
-                                let validAngle = false;
+                        let meetsConditions = (crossedEastToWest || crossedWestToEast) &&
+                                              (p.altitude < 7000) &&
+                                              (p.currentSpeed < 210) &&
+                                              (Math.round(p.x) === 721 || Math.round(p.x) === 722) &&
+                                              (p.y >= 615 && p.y <= 750);
 
-                                if (crossedFromLeft && hNorm >= 0 && hNorm <= 30) {
-                                    validAngle = true;
-                                } else if (crossedFromRight && hNorm >= 330 && hNorm <= 360) {
-                                    validAngle = true;
-                                }
-
-                                if (validAngle) {
-                                    p.state = "LOCALISER";
-                                }
-                            }
+                        if (meetsConditions) {
+                            p.state = "LOCALISER";
+                            p.targetHeading = 360;
+                            document.getElementById('comm-alerts').innerText = `Vlucht ${p.code} heeft localiser onderschept.`;
+                            updateFlightProgressStrips();
                         }
                     }
                 }
@@ -1064,12 +1212,12 @@
                 let distanceSinceLast = lastPoint ? Math.hypot(p.x - lastPoint.x, p.y - lastPoint.y) : trailSpacing + 1;
 
                 if (distanceSinceLast >= trailSpacing) {
-                    p.trailPoints.push({ x: p.x, y: p.y });
+                    p.trailPoints.path = p.trailPoints.push({ x: p.x, y: p.y });
                     if (p.trailPoints.length > 70) {
                         p.trailPoints.shift(); 
                     }
                 }
-            });
+            }
 
             if (selectedPlane) {
                 updateCoordsDisplay();
@@ -1085,6 +1233,7 @@
     function renderAllTrailsCanvas() {
         ctx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
         planes.forEach(p => {
+            if (p.state === "REMOVED") return;
             let totalPts = p.trailPoints.length;
             p.trailPoints.forEach((pt, index) => {
                 let opacity = ((index + 1) / totalPts) * 0.7;
